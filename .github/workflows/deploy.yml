@@ -110,7 +110,13 @@ jobs:
           docker compose exec -T app php artisan route:clear
           docker compose exec -T app php artisan view:clear
 
-          # Перезапуск воркера очереди, чтобы он подцепил обновлённый код.
+          # Перезапуск API и воркера, чтобы они подцепили обновлённый код.
+          # fk_app использует `php artisan serve` (built-in PHP server) — это
+          # long-running процесс, который держит классы в памяти и НЕ перечитывает
+          # файлы при изменении. Без рестарта правки контроллеров не применяются.
+          # (Когда перейдём на FPM — будет достаточно `php artisan reload` или
+          # config:clear, но пока — рестарт.)
+          docker restart fk_app >/dev/null
           docker restart fk_worker >/dev/null
           echo "backend deployed."
           REMOTE

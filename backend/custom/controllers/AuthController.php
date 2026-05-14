@@ -412,12 +412,23 @@ class AuthController extends Controller
         }
 
         // 1. Обмен code на токены.
-        // timeout 30s + 1 retry через 1.5s на ConnectionException — token endpoint
-        // у Telegram иногда даёт transient-таймауты (см. Bugs / журнал решений).
-        // throw=false: при провале всех попыток вернём $resp=null и упадём в catch.
+        //
+        // Маршрут Yandex Cloud → Telegram CDN периодически роняет TCP-handshake:
+        // в тесте 2 из 5 подключений к одному и тому же IPv4 уходят в таймаут
+        // (см. журнал решений, 2026-05-15). Лечим агрессивным fast-fail на
+        // connect + retry'ями, чтобы worst-case был ~11s, а не 30+.
+        //
+        //   connectTimeout(5) — если TCP-handshake не уложился — рестартуем;
+        //   timeout(15)       — total cap на весь запрос;
+        //   retry(2, 500)     — две перепопытки только на ConnectionException
+        //                       (если Telegram ответил 4xx — code одноразовый,
+        //                       повтор даст invalid_grant, ретрая делать нельзя);
+        //   throw=false       — при провале всех попыток упадём в catch ниже.
         try {
-            $resp = Http::asForm()->timeout(30)
-                ->retry(1, 1500, function ($e) {
+            $resp = Http::asForm()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->retry(2, 500, function ($e) {
                     return $e instanceof \Illuminate\Http\Client\ConnectionException;
                 }, throw: false)
                 ->withBasicAuth($clientId, $clientSecret)
@@ -447,9 +458,14 @@ class AuthController extends Controller
             return response()->json(['message' => 'Telegram не вернул id_token'], 502);
         }
 
-        // 2. Валидируем id_token (JWT) по JWKS
+        // 2. Валидируем id_token (JWT) по JWKS.
+        // Та же проблема с TCP-handshake к Telegram CDN — те же настройки.
         try {
-            $jwksResp = Http::timeout(10)->get('https://oauth.telegram.org/.well-known/jwks.json');
+            $jwksResp = Http::connectTimeout(5)->timeout(15)
+                ->retry(2, 500, function ($e) {
+                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                }, throw: false)
+                ->get('https://oauth.telegram.org/.well-known/jwks.json');
             if (!$jwksResp->ok()) {
                 throw new \RuntimeException('JWKS HTTP ' . $jwksResp->status());
             }
