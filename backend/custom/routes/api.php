@@ -56,7 +56,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    Route::post('/oauth/telegram/callback', [AuthController::class, 'oauthTelegram']);
+    Route::post('/oauth/telegram/exchange', [AuthController::class, 'oauthTelegramExchange']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);

@@ -6,10 +6,8 @@ import { Suspense, useState } from 'react';
 import { LogoMark } from '@/components/Logo';
 import { toggleTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
-import { TelegramLoginButton, type TelegramUser } from '@/components/TelegramLoginButton';
-import { AuthError, login, oauthTelegram, register } from '@/lib/auth';
-
-const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'fkmarket_bot';
+import { AuthError, login, register } from '@/lib/auth';
+import { startTelegramOAuth } from '@/lib/telegram-oauth';
 
 export default function LoginPage() {
   return (
@@ -37,21 +35,14 @@ function LoginInner() {
     alert(`OAuth ${provider} — следующий этап.`);
   };
 
-  const onTelegramAuth = async (tgUser: TelegramUser) => {
+  const onTelegramClick = async () => {
     setError(null);
     setBusy(true);
     try {
-      const { user, needs_email } = await oauthTelegram(tgUser);
-      setUser(user);
-      // Telegram не отдаёт email — направим юзера на профиль ввести его
-      if (needs_email) {
-        router.push('/account/profile?need=email');
-      } else {
-        router.push(user.email_verified ? redirectTo : '/verify-email');
-      }
+      await startTelegramOAuth();
+      // дальше — редирект на Telegram, страница уходит
     } catch (e) {
-      setError(e instanceof AuthError ? e.message : 'Telegram-логин не удался');
-    } finally {
+      setError(e instanceof Error ? e.message : 'Не удалось открыть Telegram');
       setBusy(false);
     }
   };
@@ -154,14 +145,18 @@ function LoginInner() {
               Я
             </button>
           </div>
-          <div className="flex justify-center mb-5 min-h-[40px]">
-            <TelegramLoginButton
-              botUsername={TELEGRAM_BOT_USERNAME}
-              size="large"
-              cornerRadius={10}
-              onAuth={onTelegramAuth}
-            />
-          </div>
+          <button
+            type="button"
+            onClick={onTelegramClick}
+            disabled={busy}
+            className="w-full h-11 mb-5 rounded-xl text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
+            style={{ background: '#0088CC' }}
+          >
+            <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="m22 3-5 18-6.5-6 9.5-9L7 14 2 12l20-9z" />
+            </svg>
+            Войти через Telegram
+          </button>
 
           <div className="flex items-center gap-3 my-5 text-xs text-gray-400">
             <div className="flex-1 h-px bg-gray-200 dark:bg-slate-800" />

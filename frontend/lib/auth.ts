@@ -188,29 +188,18 @@ export async function changeEmailRequest(input: {
   return { pending_email: r.data.pending_email, first_time: r.data.first_time };
 }
 
-// ---------- OAuth ----------
-export type TelegramAuthPayload = {
-  id: number;
-  first_name?: string;
-  last_name?: string;
-  username?: string;
-  photo_url?: string;
-  auth_date: number;
-  hash: string;
-};
-
-export async function oauthTelegram(payload: TelegramAuthPayload): Promise<{
-  token: string;
-  user: AuthUser;
-  needs_email: boolean;
-}> {
-  const r = await authFetch<{ data: { token: string; user: AuthUser; needs_email: boolean } }>(
-    '/auth/oauth/telegram/callback',
-    {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    },
-  );
+// ---------- OAuth (Telegram OIDC) ----------
+export async function oauthTelegramExchange(input: {
+  code: string;
+  code_verifier: string;
+  redirect_uri: string;
+}): Promise<{ token: string; user: AuthUser; needs_email: boolean; photo_url?: string | null }> {
+  const r = await authFetch<{
+    data: { token: string; user: AuthUser; needs_email: boolean; photo_url?: string | null };
+  }>('/auth/oauth/telegram/exchange', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
   setUserToken(r.data.token);
   return r.data;
 }

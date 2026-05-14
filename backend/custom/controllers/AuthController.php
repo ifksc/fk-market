@@ -9,10 +9,13 @@ use App\Models\EmailVerification;
 use App\Models\OauthIdentity;
 use App\Models\Order;
 use App\Models\User;
+use Firebase\JWT\JWK;
+use Firebase\JWT\JWT;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Password;
@@ -380,73 +383,100 @@ class AuthController extends Controller
     }
 
     /**
-     * POST /api/auth/oauth/telegram/callback
+     * POST /api/auth/oauth/telegram/exchange
      *
-     * Telegram Login Widget после успешной авторизации шлёт payload:
-     *   { id, first_name, last_name?, username?, photo_url?, auth_date, hash }
+     * Новый OIDC-flow (старый Login Widget Telegram пометил deprecated).
      *
-     * Проверяем подпись по доке Telegram:
-     *   data_check_string = "{key}={value}\n..." (отсортированные ключи, без hash)
-     *   secret_key = sha256(bot_token, raw_output=true)
-     *   computed_hash = hmac_sha256(data_check_string, secret_key)
-     *   computed_hash должен равняться hash
+     * Поток:
+     *   1. Фронт генерирует state и code_verifier (PKCE), кладёт в sessionStorage,
+     *      редиректит юзера на oauth.telegram.org/auth с code_challenge.
+     *   2. Telegram редиректит обратно на /oauth/telegram/callback?code=...&state=...
+     *   3. Фронт зовёт этот endpoint с code+verifier.
+     *   4. Мы меняем code на id_token у Telegram, проверяем JWT (JWKS),
+     *      достаём user data, создаём/находим User, выдаём Sanctum-токен.
      *
-     * auth_date не должна быть старше 24 часов — защита от replay.
-     *
-     * Email Telegram не отдаёт, поэтому создаём User с email=NULL.
-     * Фронт после такого логина просит юзера ввести email на /account/profile.
+     * Body: { code, code_verifier, redirect_uri }
      */
-    public function oauthTelegram(Request $request): JsonResponse
+    public function oauthTelegramExchange(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'id' => ['required', 'integer'],
-            'first_name' => ['nullable', 'string', 'max:120'],
-            'last_name' => ['nullable', 'string', 'max:120'],
-            'username' => ['nullable', 'string', 'max:120'],
-            'photo_url' => ['nullable', 'string', 'max:500'],
-            'auth_date' => ['required', 'integer'],
-            'hash' => ['required', 'string', 'size:64'],
+        $input = $request->validate([
+            'code' => ['required', 'string', 'max:512'],
+            'code_verifier' => ['required', 'string', 'min:43', 'max:128'],
+            'redirect_uri' => ['required', 'url', 'max:255'],
         ]);
 
-        $botToken = (string) config('services.telegram.bot_token');
-        if ($botToken === '') {
-            return response()->json(['message' => 'Telegram bot не настроен'], 503);
+        $clientId = (string) config('services.telegram.client_id');
+        $clientSecret = (string) config('services.telegram.client_secret');
+        if ($clientId === '' || $clientSecret === '') {
+            return response()->json(['message' => 'Telegram OAuth не настроен'], 503);
         }
 
-        // 1. Проверка подписи
-        $hash = $data['hash'];
-        $pairs = array_filter($data, fn ($v, $k) => $k !== 'hash' && $v !== null, ARRAY_FILTER_USE_BOTH);
-        ksort($pairs);
-        $dataCheckString = implode("\n", array_map(fn ($k, $v) => "{$k}={$v}", array_keys($pairs), array_values($pairs)));
-        $secretKey = hash('sha256', $botToken, true);
-        $computed = hash_hmac('sha256', $dataCheckString, $secretKey);
-
-        if (!hash_equals($computed, $hash)) {
-            Log::warning('Telegram OAuth: bad signature', ['id' => $data['id']]);
-            return response()->json(['message' => 'Подпись не сходится'], 422);
+        // 1. Обмен code на токены
+        try {
+            $resp = Http::asForm()->timeout(15)
+                ->withBasicAuth($clientId, $clientSecret)
+                ->post('https://oauth.telegram.org/token', [
+                    'grant_type' => 'authorization_code',
+                    'code' => $input['code'],
+                    'redirect_uri' => $input['redirect_uri'],
+                    'client_id' => $clientId,
+                    'code_verifier' => $input['code_verifier'],
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Telegram OAuth token exchange failed', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Не удалось связаться с Telegram'], 502);
         }
 
-        // 2. Защита от replay — auth_date свежее 24ч
-        if (time() - (int) $data['auth_date'] > 86400) {
-            return response()->json(['message' => 'Сессия устарела, попробуйте войти ещё раз'], 422);
+        if (!$resp->ok()) {
+            Log::warning('Telegram OAuth token error', ['status' => $resp->status(), 'body' => $resp->body()]);
+            return response()->json(['message' => 'Telegram отверг код входа'], 422);
         }
 
-        $providerUid = (string) $data['id'];
-        $displayName = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? '')) ?: ($data['username'] ?? 'TG '.$providerUid);
+        $idToken = (string) $resp->json('id_token');
+        if ($idToken === '') {
+            return response()->json(['message' => 'Telegram не вернул id_token'], 502);
+        }
 
-        // 3. Найти/создать связку oauth_identities
-        $user = DB::transaction(function () use ($providerUid, $displayName, $data) {
+        // 2. Валидируем id_token (JWT) по JWKS
+        try {
+            $jwksResp = Http::timeout(10)->get('https://oauth.telegram.org/.well-known/jwks.json');
+            if (!$jwksResp->ok()) {
+                throw new \RuntimeException('JWKS HTTP ' . $jwksResp->status());
+            }
+            $keys = JWK::parseKeySet($jwksResp->json());
+            $payload = (array) JWT::decode($idToken, $keys);
+        } catch (\Throwable $e) {
+            Log::warning('Telegram OAuth id_token verify failed', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Подпись id_token не сошлась'], 422);
+        }
+
+        // 3. Проверка claim'ов: iss + aud
+        if (($payload['iss'] ?? null) !== 'https://oauth.telegram.org') {
+            return response()->json(['message' => 'Неверный iss'], 422);
+        }
+        if ((string) ($payload['aud'] ?? '') !== (string) $clientId) {
+            return response()->json(['message' => 'Неверный aud'], 422);
+        }
+
+        // 4. Достаём user-data
+        $providerUid = (string) ($payload['id'] ?? $payload['sub'] ?? '');
+        if ($providerUid === '') {
+            return response()->json(['message' => 'В id_token нет id пользователя'], 422);
+        }
+        $displayName = (string) ($payload['name'] ?? $payload['preferred_username'] ?? 'TG ' . $providerUid);
+        $photoUrl = isset($payload['picture']) ? (string) $payload['picture'] : null;
+
+        // 5. Найти/создать
+        $user = DB::transaction(function () use ($providerUid, $displayName, $payload) {
             $identity = OauthIdentity::where('provider', 'telegram')
                 ->where('provider_uid', $providerUid)
                 ->first();
 
             if ($identity) {
-                $identity->update(['raw_profile' => $data]);
+                $identity->update(['raw_profile' => $payload]);
                 return $identity->user;
             }
 
-            // Свежий вход через Telegram — создаём пустого user (email=null).
-            // Email пользователь укажет на /account/profile, чтобы получать выдачу.
             $user = User::create([
                 'email' => null,
                 'name' => $displayName,
@@ -457,7 +487,7 @@ class AuthController extends Controller
                 'user_id' => $user->id,
                 'provider' => 'telegram',
                 'provider_uid' => $providerUid,
-                'raw_profile' => $data,
+                'raw_profile' => $payload,
             ]);
             return $user;
         });
@@ -477,6 +507,7 @@ class AuthController extends Controller
                 'token' => $token,
                 'user' => $this->serializeUser($user->refresh()),
                 'needs_email' => $user->email === null,
+                'photo_url' => $photoUrl,
             ],
         ]);
     }
