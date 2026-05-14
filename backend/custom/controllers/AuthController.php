@@ -298,6 +298,25 @@ class AuthController extends Controller
             return response()->json(['message' => 'Почта уже подтверждена'], 422);
         }
 
+        // Берём new_email из текущего pending verification — чтобы resend
+        // слал на тот же адрес, что и оригинальное письмо. Важно для:
+        //   1) смены email (pending = новый адрес, user->email = старый);
+        //   2) OAuth-юзеров (user->email = null, pending содержит указанный
+        //      адрес — без этого Mail падал с "read property address on null").
+        $pendingEmail = EmailVerification::where('user_id', $user->id)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->value('new_email');
+
+        // Не на какой адрес слать — выходим с понятной ошибкой
+        // вместо падения внутри почтового слоя.
+        if (!$pendingEmail && !$user->email) {
+            return response()->json([
+                'message' => 'Сначала укажите email в профиле',
+            ], 422);
+        }
+
         $key = 'resend-verify:' . $user->id;
         if (RateLimiter::tooManyAttempts($key, 1)) {
             $seconds = RateLimiter::availableIn($key);
@@ -307,7 +326,10 @@ class AuthController extends Controller
         }
         RateLimiter::hit($key, 60);
 
-        $verification = EmailVerification::issue($user);
+        // Передаём $pendingEmail (может быть null для register-flow: тогда
+        // EmailVerification::issue создаст запись с new_email=null, а
+        // VerifyEmailMail::envelope() сам возьмёт $user->email).
+        $verification = EmailVerification::issue($user, $pendingEmail);
         $this->safeSendMail(new VerifyEmailMail($verification->id), 'verify-email-resend');
 
         return response()->json(['data' => ['sent' => true]]);
