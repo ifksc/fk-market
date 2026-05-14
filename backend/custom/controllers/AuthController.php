@@ -411,9 +411,15 @@ class AuthController extends Controller
             return response()->json(['message' => 'Telegram OAuth не настроен'], 503);
         }
 
-        // 1. Обмен code на токены
+        // 1. Обмен code на токены.
+        // timeout 30s + 1 retry через 1.5s на ConnectionException — token endpoint
+        // у Telegram иногда даёт transient-таймауты (см. Bugs / журнал решений).
+        // throw=false: при провале всех попыток вернём $resp=null и упадём в catch.
         try {
-            $resp = Http::asForm()->timeout(15)
+            $resp = Http::asForm()->timeout(30)
+                ->retry(1, 1500, function ($e) {
+                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                }, throw: false)
                 ->withBasicAuth($clientId, $clientSecret)
                 ->post('https://oauth.telegram.org/token', [
                     'grant_type' => 'authorization_code',
@@ -424,7 +430,11 @@ class AuthController extends Controller
                 ]);
         } catch (\Throwable $e) {
             Log::warning('Telegram OAuth token exchange failed', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Не удалось связаться с Telegram'], 502);
+            // 503 + Retry-After: для клиента это «попробуй ещё раз», а не «сервер сломан»
+            // (как читалось 502 у пользователя на скриншоте).
+            return response()
+                ->json(['message' => 'Telegram временно недоступен, попробуйте ещё раз'], 503)
+                ->header('Retry-After', '5');
         }
 
         if (!$resp->ok()) {
