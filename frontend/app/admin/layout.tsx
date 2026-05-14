@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Tag,
+  Users,
 } from 'lucide-react';
 import { LogoMark } from '@/components/Logo';
 import {
@@ -32,6 +33,7 @@ const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ clas
   { href: '/admin/categories', label: 'Категории', icon: FolderTree },
   { href: '/admin/stock', label: 'Склад ключей', icon: Boxes },
   { href: '/admin/orders', label: 'Заказы', icon: ListOrdered },
+  { href: '/admin/users', label: 'Пользователи', icon: Users },
   { href: '/admin/queue', label: 'Очередь выдачи', icon: ShieldCheck },
   { href: '/admin/providers', label: 'Поставщики', icon: Plug },
   { href: '/admin/pricing', label: 'Наценки', icon: Tag },

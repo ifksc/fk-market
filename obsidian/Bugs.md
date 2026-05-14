@@ -33,5 +33,6 @@ _Пусто_
 - 2026-05-13 — Спец-товары без `provider_external_id` и без `variant_select` (Пополнение Steam) уезжали в draft автосинком. Фикс: ProductRefresher пропускает такие.
 - 2026-05-13 — Webhook FK висел до 5+ мин (QUEUE=sync), фронт ловил 504 на `/api/payments/fkwallet/check`. Фикс: `QUEUE_CONNECTION=database`, контейнер `fk_worker` с `php artisan queue:work`, jobs обрабатываются в фоне.
 - 2026-05-14 — Автосинк FKwallet обновлял `provider_products`, но не создавал наши `Product`'ы (это делала только ручная кнопка «Подключить все»). Фикс: в `ProvidersSyncCommand` добавлен шаг `ProductGrouper::default()->groupAll($provider, ['status' => 'active'])`. Управляется флагом `provider.settings.auto_connect_new_products` (default true). Заодно поймали: `app(ProductGrouper::class)` подсовывал пустой `Seller` через DI — нужен именно `::default()`, который тянет `Seller::where('slug','platform')`.
+- 2026-05-14 — При первом `git init` папка `frontend/` была закоммичена как submodule (Next.js при `create-next-app` сделал внутри свой `.git/`), на GitHub попала «ссылка на коммит» вместо файлов, CI не мог синкать фронт. Фикс: `rm -rf frontend/.git`, `git rm --cached -f frontend`, `git add frontend` — теперь это обычная папка. Backend такой проблемы не имел.
 
 </details>

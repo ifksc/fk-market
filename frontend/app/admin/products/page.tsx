@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Search } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowUpDown, Search } from 'lucide-react';
 import {
   getAdminProducts,
   type AdminProductListItem,
@@ -152,6 +152,18 @@ export default function AdminProductsPage() {
                     <th className="px-4 py-3 font-medium">Остаток</th>
                     <th className="px-4 py-3 font-medium">Продаж</th>
                     <th className="px-4 py-3 font-medium">Статус</th>
+                    <SortableTh
+                      label="Добавлен"
+                      sortKey="created"
+                      current={filters.sort ?? 'updated_desc'}
+                      onSort={(s) => setFilters((f) => ({ ...f, sort: s }))}
+                    />
+                    <SortableTh
+                      label="Обновлён"
+                      sortKey="updated"
+                      current={filters.sort ?? 'updated_desc'}
+                      onSort={(s) => setFilters((f) => ({ ...f, sort: s }))}
+                    />
                     <th className="px-4 py-3"></th>
                   </tr>
                 </thead>
@@ -197,6 +209,12 @@ export default function AdminProductsPage() {
                           {STATUS_LABEL[p.status] ?? p.status}
                         </span>
                       </td>
+                      <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                        {formatDate(p.created_at)}
+                      </td>
+                      <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">
+                        {formatDate(p.updated_at)}
+                      </td>
                       <td className="px-4 py-3 text-right">
                         <Link
                           href={`/admin/products/${p.id}`}
@@ -238,5 +256,51 @@ export default function AdminProductsPage() {
         )}
       </div>
     </div>
+  );
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+type SortKey = 'created' | 'updated';
+type SortValue = AdminProductsQuery['sort'];
+
+function SortableTh({
+  label,
+  sortKey,
+  current,
+  onSort,
+}: {
+  label: string;
+  sortKey: SortKey;
+  current: NonNullable<SortValue>;
+  onSort: (s: SortValue) => void;
+}) {
+  const isActive = current === `${sortKey}_asc` || current === `${sortKey}_desc`;
+  const isDesc = current === `${sortKey}_desc`;
+  const next: SortValue = isActive
+    ? (isDesc ? `${sortKey}_asc` : `${sortKey}_desc`) as SortValue
+    : `${sortKey}_desc` as SortValue;
+  return (
+    <th className="px-4 py-3 font-medium">
+      <button
+        type="button"
+        onClick={() => onSort(next)}
+        className={`inline-flex items-center gap-1 hover:text-brand-600 ${isActive ? 'text-brand-600' : ''}`}
+      >
+        {label}
+        {!isActive && <ArrowUpDown className="w-3 h-3 opacity-60" />}
+        {isActive && isDesc && <ArrowDown className="w-3 h-3" />}
+        {isActive && !isDesc && <ArrowUp className="w-3 h-3" />}
+      </button>
+    </th>
   );
 }

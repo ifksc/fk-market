@@ -37,6 +37,10 @@ class ProductController extends Controller
             'price_asc' => $q->orderBy('price_final'),
             'price_desc' => $q->orderByDesc('price_final'),
             'sales' => $q->orderByDesc('sales_count'),
+            'created_asc' => $q->orderBy('created_at'),
+            'created_desc' => $q->orderByDesc('created_at'),
+            'updated_asc' => $q->orderBy('updated_at'),
+            'updated_desc' => $q->orderByDesc('updated_at'),
             default => $q->orderByDesc('updated_at'),
         };
 
@@ -273,6 +277,7 @@ class ProductController extends Controller
             'sales_count' => $p->sales_count,
             'rating' => (float) $p->rating,
             'status' => $p->status,
+            'created_at' => $p->created_at?->toIso8601String(),
             'updated_at' => $p->updated_at?->toIso8601String(),
         ];
     }

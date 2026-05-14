@@ -25,6 +25,7 @@ export type AdminProductListItem = {
   sales_count: number;
   rating: number;
   status: 'draft' | 'active' | 'archived';
+  created_at: string | null;
   updated_at: string | null;
 };
 
@@ -127,10 +128,71 @@ export type AdminProductsQuery = {
   status?: 'draft' | 'active' | 'archived';
   category?: string;
   mode?: 'stock' | 'api' | 'manual';
-  sort?: 'updated_desc' | 'name' | 'price_asc' | 'price_desc' | 'sales';
+  sort?: 'updated_desc' | 'updated_asc' | 'created_desc' | 'created_asc' | 'name' | 'price_asc' | 'price_desc' | 'sales';
   page?: number;
   per_page?: number;
 };
+
+// ---------- Пользователи (админка) ----------
+export type AdminUserListItem = {
+  id: number;
+  email: string;
+  name: string | null;
+  role: 'customer' | 'admin' | 'seller' | 'moderator';
+  email_verified: boolean;
+  is_blocked: boolean;
+  balance: number;
+  orders_count: number;
+  orders_total_sum: number;
+  created_at: string | null;
+  last_login_at: string | null;
+};
+
+export type AdminUserOrderItem = {
+  product_name: string | null;
+  product_slug: string | null;
+  qty: number;
+  price: number;
+  fulfillment_status: string;
+};
+
+export type AdminUserOrder = {
+  public_number: string;
+  status: 'pending' | 'paid' | 'completed' | 'cancelled' | 'refunded';
+  total: number;
+  currency: string;
+  created_at: string | null;
+  paid_at: string | null;
+  items: AdminUserOrderItem[];
+};
+
+export type AdminUserDetail = AdminUserListItem & {
+  phone: string | null;
+  last_login_ip: string | null;
+  orders: AdminUserOrder[];
+};
+
+export type AdminUsersQuery = {
+  q?: string;
+  role?: 'customer' | 'admin' | 'seller' | 'moderator';
+  sort?: 'created_desc' | 'created_asc' | 'email' | 'orders_desc' | 'spent_desc';
+  page?: number;
+  per_page?: number;
+};
+
+export async function listAdminUsers(query: AdminUsersQuery = {}): Promise<Paginated<AdminUserListItem>> {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return adminFetch<Paginated<AdminUserListItem>>(`/admin/users${qs ? `?${qs}` : ''}`);
+}
+
+export async function getAdminUser(id: number): Promise<AdminUserDetail> {
+  const r = await adminFetch<{ data: AdminUserDetail }>(`/admin/users/${id}`);
+  return r.data;
+}
 
 export async function getAdminProducts(query: AdminProductsQuery = {}): Promise<Paginated<AdminProductListItem>> {
   const params = new URLSearchParams();

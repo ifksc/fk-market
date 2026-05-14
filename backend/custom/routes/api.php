@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Admin\ProviderController as AdminProvider;
 use App\Http\Controllers\Api\Admin\QueueController as AdminQueue;
 use App\Http\Controllers\Api\Admin\SettingController as AdminSetting;
 use App\Http\Controllers\Api\Admin\StockController as AdminStock;
+use App\Http\Controllers\Api\Admin\UserController as AdminUser;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Me\OrderController as MeOrderController;
 use App\Http\Controllers\Api\CategoryController;
@@ -139,6 +140,10 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     Route::get('/settings', [AdminSetting::class, 'index']);
     Route::put('/settings', [AdminSetting::class, 'update']);
+
+    // Пользователи
+    Route::get('/users', [AdminUser::class, 'index']);
+    Route::get('/users/{user:id}', [AdminUser::class, 'show']);
 
     Route::get('/payment-methods', [AdminPaymentMethod::class, 'index']);
     Route::post('/payment-methods', [AdminPaymentMethod::class, 'store']);
