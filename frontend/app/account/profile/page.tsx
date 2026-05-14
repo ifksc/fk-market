@@ -121,7 +121,7 @@ function ProfileForm({
 
 // ---------- Email ----------
 
-function EmailSection({ currentEmail, verified }: { currentEmail: string; verified: boolean }) {
+function EmailSection({ currentEmail, verified }: { currentEmail: string | null; verified: boolean }) {
   const [open, setOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -134,7 +134,11 @@ function EmailSection({ currentEmail, verified }: { currentEmail: string; verifi
     setBusy(true);
     setNotice(null);
     try {
-      const r = await changeEmailRequest({ new_email: newEmail.trim(), password });
+      const r = await changeEmailRequest({
+        new_email: newEmail.trim(),
+        // Пароль нужен только для смены существующего email.
+        ...(currentEmail ? { password } : {}),
+      });
       setPending(r.pending_email);
       setOpen(false);
       setPassword('');
@@ -151,8 +155,8 @@ function EmailSection({ currentEmail, verified }: { currentEmail: string; verifi
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
           <Mail className="w-4 h-4 text-gray-400" />
-          <span className="font-medium">{currentEmail}</span>
-          {verified ? (
+          <span className="font-medium">{currentEmail || <span className="text-gray-400 italic">не указан</span>}</span>
+          {!currentEmail ? null : verified ? (
             <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
               <CheckCircle2 className="w-3 h-3" /> подтверждён
             </span>
@@ -165,11 +169,11 @@ function EmailSection({ currentEmail, verified }: { currentEmail: string; verifi
         {!open && (
           <button
             onClick={() => setOpen(true)}
-            disabled={!verified}
-            title={!verified ? 'Сначала подтвердите текущий email' : undefined}
+            disabled={Boolean(currentEmail) && !verified}
+            title={Boolean(currentEmail) && !verified ? 'Сначала подтвердите текущий email' : undefined}
             className="text-sm text-brand-600 hover:underline disabled:text-gray-400 disabled:no-underline disabled:cursor-not-allowed"
           >
-            Сменить email
+            {currentEmail ? 'Сменить email' : 'Указать email'}
           </button>
         )}
       </div>
@@ -192,16 +196,18 @@ function EmailSection({ currentEmail, verified }: { currentEmail: string; verifi
               className="w-full h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
             />
           </Field>
-          <Field label="Текущий пароль">
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
-              className="w-full h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-            />
-          </Field>
+          {currentEmail && (
+            <Field label="Текущий пароль">
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="current-password"
+                className="w-full h-11 px-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
+              />
+            </Field>
+          )}
           <FormActions notice={notice}>
             <button
               type="submit"

@@ -35,6 +35,13 @@ export default function VerifyEmailPage() {
     }
   }, [user, router]);
 
+  // У OAuth-юзера может не быть email — отправляем его сначала указать его
+  useEffect(() => {
+    if (user && user.email === null) {
+      router.replace('/account/profile?need=email');
+    }
+  }, [user, router]);
+
   // Cooldown таймер
   useEffect(() => {
     if (cooldown <= 0) return;

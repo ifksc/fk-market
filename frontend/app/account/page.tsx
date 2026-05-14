@@ -78,7 +78,7 @@ export default function AccountPage() {
   const totalSpent = orders
     .filter((o) => o.status === 'paid' || o.status === 'completed')
     .reduce((sum, o) => sum + o.total, 0);
-  const initials = (user.name || user.email)
+  const initials = (user.name || user.email || '?')
     .split(/[\s@.]/)
     .filter(Boolean)
     .slice(0, 2)
@@ -93,21 +93,33 @@ export default function AccountPage() {
         <div className="mb-6 rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-900/20 px-5 py-4 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
           <div className="flex-1">
-            <div className="font-medium text-amber-800 dark:text-amber-200">Подтвердите почту</div>
+            <div className="font-medium text-amber-800 dark:text-amber-200">
+              {user.email ? 'Подтвердите почту' : 'Укажите email'}
+            </div>
             <p className="text-sm text-amber-700 dark:text-amber-300 mt-0.5">
-              Без подтверждения вы не сможете сменить email или открыть тикет.
+              {user.email
+                ? 'Без подтверждения вы не сможете сменить email или открыть тикет.'
+                : 'Email нужен, чтобы получать ключи и подтверждения после оплаты.'}
             </p>
             <div className="flex flex-wrap items-center gap-3 mt-3">
-              <Link href="/verify-email" className="text-sm font-medium text-amber-700 dark:text-amber-200 underline">
-                Ввести код
-              </Link>
-              <button
-                onClick={handleResendVerify}
-                disabled={resending}
-                className="text-sm text-amber-700 dark:text-amber-200 hover:underline disabled:opacity-50"
-              >
-                {resending ? 'Отправляем…' : 'Отправить ещё раз'}
-              </button>
+              {user.email ? (
+                <>
+                  <Link href="/verify-email" className="text-sm font-medium text-amber-700 dark:text-amber-200 underline">
+                    Ввести код
+                  </Link>
+                  <button
+                    onClick={handleResendVerify}
+                    disabled={resending}
+                    className="text-sm text-amber-700 dark:text-amber-200 hover:underline disabled:opacity-50"
+                  >
+                    {resending ? 'Отправляем…' : 'Отправить ещё раз'}
+                  </button>
+                </>
+              ) : (
+                <Link href="/account/profile?need=email" className="text-sm font-medium text-amber-700 dark:text-amber-200 underline">
+                  Указать email →
+                </Link>
+              )}
               {resendNotice && <span className="text-sm text-amber-700 dark:text-amber-200">{resendNotice}</span>}
             </div>
           </div>
