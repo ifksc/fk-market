@@ -38,9 +38,20 @@ class EmailVerification extends Model
     /**
      * Создать запись подтверждения с 6-значным кодом (TTL 30 мин).
      * Token (64 char) тоже генерируем — на случай магической ссылки в будущем.
+     *
+     * Все предыдущие неиспользованные verification'ы юзера помечаются `used_at=now`
+     * (де-факто отменяются). Это:
+     *  1) даёт юзеру указать другой email до подтверждения первого, не подсунув
+     *     при этом старый/неверный pending_email;
+     *  2) инвалидирует код из старого письма, если оно с задержкой дойдёт после
+     *     того как юзер уже сменил email (security).
      */
     public static function issue(User $user, ?string $newEmail = null): self
     {
+        self::where('user_id', $user->id)
+            ->whereNull('used_at')
+            ->update(['used_at' => now()]);
+
         return self::create([
             'user_id' => $user->id,
             'token' => Str::random(64),

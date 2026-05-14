@@ -221,12 +221,19 @@ export default function VerifyEmailPage() {
           </div>
 
           <div className="text-xs text-gray-400 mt-4">
-            Не тот email?{' '}
+            Не тот email или письмо не приходит?{' '}
+            <Link
+              href="/account/profile?need=email"
+              className="text-brand-600 hover:underline"
+            >
+              Указать другой
+            </Link>
+            {' · '}
             <button
               onClick={() => { void refresh(); router.push('/login'); }}
               className="text-brand-600 hover:underline"
             >
-              Выйти и войти заново
+              Выйти
             </button>
           </div>
         </div>
