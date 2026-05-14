@@ -1,0 +1,18 @@
+// FK.market — добавить эту секцию в src/config/services.php (внутри return [...]).
+// Это БЛОК ДЛЯ ПЛАТЁЖНОЙ СИСТЕМЫ Freekassa (НЕ путать с FKwallet — тот в 'fkwallet_op').
+
+    'freekassa' => [
+        'merchant_id'   => env('FREEKASSA_MERCHANT_ID'),
+        'secret_word_1' => env('FREEKASSA_SECRET_WORD_1'),
+        'secret_word_2' => env('FREEKASSA_SECRET_WORD_2'),
+        'api_key'       => env('FREEKASSA_API_KEY'),
+        'sandbox'       => env('FREEKASSA_SANDBOX', false),
+    ],
+
+    // Поставщик товаров (НЕ платёжка):
+    'fkwallet_op' => [
+        'public_key'         => env('FKWALLET_OP_KEY'),
+        'private_key'        => env('FKWALLET_OP_PRIVATE_KEY'),
+        'base_url'           => env('FKWALLET_OP_BASE_URL', 'https://api.fkwallet.io/v1'),
+        'default_currency_id' => (int) env('FKWALLET_OP_CURRENCY_ID', 1),
+    ],

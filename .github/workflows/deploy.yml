@@ -1,0 +1,144 @@
+name: Deploy to fk.market
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+env:
+  SSH_HOST: 194.87.118.214
+  SSH_USER: deploy
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # нужно чтобы увидеть HEAD~1 для diff
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null
+
+      - name: Detect what changed
+        id: changes
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "backend=true"  >> "$GITHUB_OUTPUT"
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD)
+          else
+            CHANGED=$(git ls-files)
+          fi
+          echo "$CHANGED"
+          echo "$CHANGED" | grep -q '^backend/'  && echo "backend=true"  >> "$GITHUB_OUTPUT" || true
+          echo "$CHANGED" | grep -q '^frontend/' && echo "frontend=true" >> "$GITHUB_OUTPUT" || true
+
+      # ---------- BACKEND ----------
+      - name: Sync backend custom/
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          rsync -avz --delete \
+            backend/custom/ \
+            "$SSH_USER@$SSH_HOST:/opt/fk.market/backend/custom/"
+          rsync -avz \
+            backend/docker-compose.yml \
+            backend/setup.sh \
+            "$SSH_USER@$SSH_HOST:/opt/fk.market/backend/"
+
+      - name: Apply backend (custom → src + migrate)
+        if: steps.changes.outputs.backend == 'true'
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          set -euo pipefail
+          BACK=/opt/fk.market/backend
+          SRC=$BACK/src
+          CUSTOM=$BACK/custom
+
+          mkdir -p \
+            "$SRC/app/Http/Controllers/Api/Admin" \
+            "$SRC/app/Http/Controllers/Api/Me" \
+            "$SRC/app/Http/Middleware" \
+            "$SRC/app/Models" \
+            "$SRC/app/Services/Providers" \
+            "$SRC/app/Jobs" \
+            "$SRC/app/Console/Commands" \
+            "$SRC/app/Providers" \
+            "$SRC/app/Mail" \
+            "$SRC/database/migrations" \
+            "$SRC/database/seeders" \
+            "$SRC/routes" \
+            "$SRC/resources/views/emails"
+
+          # controllers
+          [ -d "$CUSTOM/controllers/Admin" ] && cp -f "$CUSTOM/controllers/Admin/"*.php "$SRC/app/Http/Controllers/Api/Admin/" 2>/dev/null || true
+          [ -d "$CUSTOM/controllers/Me" ]    && cp -f "$CUSTOM/controllers/Me/"*.php    "$SRC/app/Http/Controllers/Api/Me/"    2>/dev/null || true
+          for f in "$CUSTOM/controllers/"*.php; do [ -f "$f" ] && cp -f "$f" "$SRC/app/Http/Controllers/Api/"; done
+
+          # остальные слои
+          for f in "$CUSTOM/middleware/"*.php;          do [ -f "$f" ] && cp -f "$f" "$SRC/app/Http/Middleware/"; done
+          for f in "$CUSTOM/models/"*.php;              do [ -f "$f" ] && cp -f "$f" "$SRC/app/Models/"; done
+          for f in "$CUSTOM/services/Providers/"*.php;  do [ -f "$f" ] && cp -f "$f" "$SRC/app/Services/Providers/"; done
+          for f in "$CUSTOM/services/"*.php;            do [ -f "$f" ] && cp -f "$f" "$SRC/app/Services/"; done
+          for f in "$CUSTOM/jobs/"*.php;                do [ -f "$f" ] && cp -f "$f" "$SRC/app/Jobs/"; done
+          for f in "$CUSTOM/console/"*.php;             do [ -f "$f" ] && cp -f "$f" "$SRC/app/Console/Commands/"; done
+          for f in "$CUSTOM/providers/"*.php;           do [ -f "$f" ] && cp -f "$f" "$SRC/app/Providers/"; done
+          for f in "$CUSTOM/mail/"*.php;                do [ -f "$f" ] && cp -f "$f" "$SRC/app/Mail/"; done
+          for f in "$CUSTOM/migrations/"*.php;          do [ -f "$f" ] && cp -f "$f" "$SRC/database/migrations/"; done
+          for f in "$CUSTOM/seeders/"*.php;             do [ -f "$f" ] && cp -f "$f" "$SRC/database/seeders/"; done
+          for f in "$CUSTOM/routes/"*.php;              do [ -f "$f" ] && cp -f "$f" "$SRC/routes/"; done
+          for f in "$CUSTOM/views/emails/"*.blade.php;  do [ -f "$f" ] && cp -f "$f" "$SRC/resources/views/emails/"; done
+
+          cd "$BACK"
+          docker compose exec -T app php artisan migrate --force
+          docker compose exec -T app php artisan config:clear
+          docker compose exec -T app php artisan route:clear
+          docker compose exec -T app php artisan view:clear
+
+          # Перезапуск воркера очереди, чтобы он подцепил обновлённый код.
+          docker restart fk_worker >/dev/null
+          echo "backend deployed."
+          REMOTE
+
+      # ---------- FRONTEND ----------
+      - name: Sync frontend
+        if: steps.changes.outputs.frontend == 'true'
+        run: |
+          rsync -avz \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='out' \
+            frontend/ \
+            "$SSH_USER@$SSH_HOST:/opt/fk.market/frontend/"
+
+      - name: Rebuild frontend
+        if: steps.changes.outputs.frontend == 'true'
+        run: |
+          ssh "$SSH_USER@$SSH_HOST" 'bash -s' <<REMOTE
+          set -euo pipefail
+          echo "${{ secrets.DOCKER_HUB_TOKEN }}" | docker login -u "${{ secrets.DOCKER_HUB_USER }}" --password-stdin >/dev/null
+          cd /opt/fk.market/frontend
+          docker compose build frontend 2>&1 | tail -n 40
+          docker compose up -d frontend
+          sleep 3
+          docker compose ps frontend
+          REMOTE
+
+      - name: Cleanup SSH
+        if: always()
+        run: rm -f ~/.ssh/id_ed25519

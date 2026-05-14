@@ -1,0 +1,12 @@
+<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FK.market logo B — Bolt">
+  <defs>
+    <linearGradient id="gB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#8b5cf6"/>
+    </linearGradient>
+  </defs>
+  <!-- Shield with bolt -->
+  <path d="M40 4 L68 14 V36 C68 54 40 76 40 76 C40 76 12 54 12 36 V14 Z" fill="url(#gB)"/>
+  <!-- Lightning bolt cut-out -->
+  <path d="M44 22 L30 44 H40 L36 58 L54 34 H44 Z" fill="#fff"/>
+</svg>

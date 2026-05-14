@@ -1,0 +1,116 @@
+# FK.market — локальная инфраструктура
+# Запуск: docker compose up -d
+# Остановка: docker compose down
+# Полный сброс (удаляет данные БД): docker compose down -v
+services:
+  # ---------- PHP-приложение (Laravel) ----------
+  app:
+    build:
+      context: ./docker/php
+    container_name: fk_app
+    working_dir: /var/www/html
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      PHP_MEMORY_LIMIT: 512M
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - fk
+
+  # ---------- Воркер очереди (Laravel queue:work) ----------
+  # Обрабатывает фоновые задачи (выдача товаров, polling FK API).
+  # Без него webhook от Freekassa висел бы 5+ мин, держа php-fpm worker,
+  # фронт ловил бы 504 на /api/payments/fkwallet/check.
+  #
+  # Использует уже собранный image от сервиса app (`backend-app`), чтобы не
+  # упираться в Docker Hub rate-limit при пересборке.
+  worker:
+    image: backend-app
+    pull_policy: never
+    container_name: fk_worker
+    working_dir: /var/www/html
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html
+    environment:
+      PHP_MEMORY_LIMIT: 512M
+    command: php artisan queue:work --tries=3 --sleep=3 --timeout=600 --max-time=3600
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - fk
+
+  # ---------- Веб-сервер (nginx) ----------
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: fk_nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./src:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - fk
+
+  # ---------- База данных ----------
+  mysql:
+    image: mysql:8.0
+    container_name: fk_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: fk_market
+      MYSQL_USER: fk_user
+      MYSQL_PASSWORD: fk_password
+      MYSQL_ROOT_PASSWORD: root_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot_password"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - fk
+
+  # ---------- Redis (кэш + очереди) ----------
+  redis:
+    image: redis:7-alpine
+    container_name: fk_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - fk
+
+  # ---------- phpMyAdmin (опционально, для удобного просмотра БД) ----------
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: fk_pma
+    ports:
+      - "8080:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: root_password
+    depends_on:
+      - mysql
+    networks:
+      - fk
+
+volumes:
+  mysql_data:
+
+networks:
+  fk:
+    driver: bridge

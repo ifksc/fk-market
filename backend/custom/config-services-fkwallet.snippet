@@ -1,0 +1,10 @@
+// FK.market — добавить эту секцию в src/config/services.php
+// (В блок return [...])
+
+    'fkwallet' => [
+        'merchant_id'   => env('FKWALLET_MERCHANT_ID'),
+        'secret_word_1' => env('FKWALLET_SECRET_WORD_1'),
+        'secret_word_2' => env('FKWALLET_SECRET_WORD_2'),
+        'api_key'       => env('FKWALLET_API_KEY'),
+        'sandbox'       => env('FKWALLET_SANDBOX', false),
+    ],

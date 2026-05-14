@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>FK.market — ER-диаграмма</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  body { font-family: 'Inter', sans-serif; }
+  .mermaid { display: flex; justify-content: center; padding: 2rem; }
+  .fk-logo {
+    background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    font-weight: 800; letter-spacing: -0.02em;
+  }
+</style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+
+<header class="max-w-6xl mx-auto px-4 py-8">
+  <div class="text-sm text-gray-500 mb-2">Backend · База данных</div>
+  <h1 class="text-3xl font-bold">ER-диаграмма FK.market</h1>
+  <p class="text-gray-600 mt-2">18 бизнес-таблиц: пользователи, каталог, склад, заказы, платежи, очередь выдачи, поставщики, отзывы, промо.</p>
+  <div class="mt-4 flex gap-2 text-xs">
+    <a href="schema.sql" class="px-3 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-100">schema.sql</a>
+    <a href="../README.md" class="px-3 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-100">README</a>
+    <a href="../../FK_market_TZ.md" class="px-3 py-1 rounded-full bg-white border border-gray-200 hover:bg-gray-100">ТЗ v0.4</a>
+  </div>
+</header>
+
+<main class="max-w-[1400px] mx-auto px-4 pb-12">
+  <div class="bg-white border border-gray-200 rounded-2xl overflow-auto">
+    <div class="mermaid">
+erDiagram
+    users ||--o{ oauth_identities : "has"
+    users ||--o{ sellers : "may be"
+    users ||--o{ orders : "places"
+    users ||--o{ reviews : "writes"
+    users ||--o{ audit_logs : "acts"
+
+    sellers ||--o{ products : "owns"
+    sellers ||--o{ order_items : "fulfills"
+    sellers ||--o{ payouts : "withdraws"
+
+    categories ||--o{ categories : "parent-of"
+    categories ||--o{ products : "contains"
+
+    products ||--o{ product_images : "has"
+    products ||--o{ stock_items : "stock-of"
+    products ||--o{ order_items : "in-order"
+    products ||--o{ reviews : "receives"
+    products }o--|| providers : "api-source"
+
+    providers ||--o{ provider_products : "supplies"
+    providers ||--o{ provider_logs : "logs"
+    provider_products }o--|| products : "mapped-to"
+
+    orders ||--|{ order_items : "contains"
+    orders ||--o{ payments : "pays"
+    orders }o--|| promocodes : "uses"
+
+    order_items }|--|| products : "refers"
+    order_items }o--|| stock_items : "consumes"
+    order_items ||--o| fulfillment_tasks : "requires"
+
+    fulfillment_tasks }o--|| providers : "via"
+    fulfillment_tasks }o--|| users : "assigned-to"
+
+    pricing_rules ||..|| categories : "scoped-to"
+    pricing_rules ||..|| sellers : "scoped-to"
+    pricing_rules ||..|| products : "scoped-to"
+
+    users {
+      BIGINT id PK
+      string email UK
+      enum role "customer|admin|seller|moderator"
+      decimal balance
+    }
+    sellers {
+      BIGINT id PK
+      BIGINT user_id FK
+      string slug UK
+      enum legal_type
+      decimal commission_pct
+    }
+    categories {
+      BIGINT id PK
+      BIGINT parent_id FK
+      string slug UK
+      int sort_order
+    }
+    products {
+      BIGINT id PK
+      BIGINT seller_id FK
+      BIGINT category_id FK
+      BIGINT provider_id FK
+      enum fulfillment_mode "stock|api|manual"
+      enum fulfillment_fallback
+      decimal price_final
+      json required_params
+      enum status
+    }
+    product_images {
+      BIGINT id PK
+      BIGINT product_id FK
+      string url
+      bool is_primary
+    }
+    stock_items {
+      BIGINT id PK
+      BIGINT product_id FK
+      text payload "encrypted"
+      bool is_sold
+    }
+    providers {
+      BIGINT id PK
+      string code UK
+      text credentials "encrypted"
+      enum status
+    }
+    provider_products {
+      BIGINT id PK
+      BIGINT provider_id FK
+      string external_id
+      BIGINT product_id FK
+      int in_stock
+    }
+    provider_logs {
+      BIGINT id PK
+      BIGINT provider_id FK
+      string operation
+      int latency_ms
+      bool success
+    }
+    orders {
+      BIGINT id PK
+      string public_number UK
+      BIGINT user_id FK
+      string email
+      decimal total
+      enum status
+    }
+    order_items {
+      BIGINT id PK
+      BIGINT order_id FK
+      BIGINT product_id FK
+      BIGINT seller_id FK
+      BIGINT stock_item_id FK
+      int qty
+      decimal price
+      json params
+      enum fulfillment_status
+      text delivered_payload "encrypted"
+    }
+    payments {
+      BIGINT id PK
+      BIGINT order_id FK
+      enum provider "fkwallet"
+      string method
+      decimal amount
+      enum status
+    }
+    payouts {
+      BIGINT id PK
+      BIGINT seller_id FK
+      decimal amount
+      enum status
+    }
+    fulfillment_tasks {
+      BIGINT id PK
+      BIGINT order_item_id FK
+      enum mode "api|manual"
+      BIGINT provider_id FK
+      BIGINT assignee_id FK
+      timestamp deadline_at
+      enum status
+    }
+    reviews {
+      BIGINT id PK
+      BIGINT product_id FK
+      BIGINT user_id FK
+      BIGINT order_id FK
+      tinyint rating
+    }
+    promocodes {
+      BIGINT id PK
+      string code UK
+      enum type "percent|fixed"
+      decimal value
+      json product_ids
+    }
+    pricing_rules {
+      BIGINT id PK
+      enum scope "global|category|seller|product"
+      BIGINT scope_id
+      decimal markup_pct
+      int priority
+    }
+    settings {
+      string key PK
+      text value
+      enum type
+    }
+    audit_logs {
+      BIGINT id PK
+      BIGINT user_id FK
+      string action
+      string subject_type
+      BIGINT subject_id
+      json payload
+    }
+    oauth_identities {
+      BIGINT id PK
+      BIGINT user_id FK
+      enum provider "vk|yandex|telegram"
+      string provider_uid
+    }
+    </div>
+  </div>
+
+  <section class="mt-8 grid md:grid-cols-3 gap-4">
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="text-xs uppercase tracking-wider text-gray-500 mb-2">Главный путь заказа</div>
+      <p class="text-sm text-gray-700">
+        <code>orders</code> → <code>order_items</code> → для каждого item в зависимости от
+        <code>products.fulfillment_mode</code>:<br/>
+        • <b>stock</b> — резервируется <code>stock_items</code> и копируется в <code>delivered_payload</code>;<br/>
+        • <b>api</b> — создаётся <code>fulfillment_tasks</code> с режимом api, джоба вызывает <code>ProviderGateway</code>;<br/>
+        • <b>manual</b> — создаётся <code>fulfillment_tasks</code> с режимом manual, появляется в админ-очереди.
+      </p>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="text-xs uppercase tracking-wider text-gray-500 mb-2">Шифрование</div>
+      <p class="text-sm text-gray-700">
+        На уровне приложения (Laravel <code>Crypt</code>) шифруются:
+        <code>stock_items.payload</code>, <code>order_items.delivered_payload</code>,
+        <code>providers.credentials</code>. Ключ — в <code>APP_KEY</code> в <code>.env</code>.
+      </p>
+    </div>
+    <div class="bg-white border border-gray-200 rounded-2xl p-5">
+      <div class="text-xs uppercase tracking-wider text-gray-500 mb-2">Расчёт цены</div>
+      <p class="text-sm text-gray-700">
+        <code>products.price_final</code> денормализован (чтоб не считать на каждом запросе).
+        Пересчёт — при изменении <code>price_base</code>, <code>markup_pct</code> или
+        <code>pricing_rules</code>. Правила применяются по убыванию <code>priority</code>.
+      </p>
+    </div>
+  </section>
+</main>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'default',
+    er: { useMaxWidth: true },
+    themeVariables: {
+      primaryColor: '#eef2ff',
+      primaryTextColor: '#1e293b',
+      primaryBorderColor: '#6366f1',
+      lineColor: '#8b5cf6',
+      tertiaryColor: '#fef3c7'
+    }
+  });
+</script>
+</body></html>

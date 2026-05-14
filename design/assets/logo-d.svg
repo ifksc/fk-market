@@ -1,0 +1,20 @@
+<svg viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="FK.market logo D — Monogram">
+  <defs>
+    <linearGradient id="gD" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#ec4899"/>
+    </linearGradient>
+  </defs>
+  <rect width="80" height="80" rx="20" fill="#0f172a"/>
+  <!-- Monogram: F + K sharing central vertical stem -->
+  <g stroke="url(#gD)" stroke-width="6" stroke-linecap="square" fill="none">
+    <!-- F -->
+    <path d="M20 20 V60"/>
+    <path d="M20 20 H42"/>
+    <path d="M20 40 H38"/>
+    <!-- K (mirrored from central line) -->
+    <path d="M44 20 V60"/>
+    <path d="M44 40 L62 20"/>
+    <path d="M44 40 L62 60"/>
+  </g>
+</svg>

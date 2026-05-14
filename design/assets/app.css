@@ -1,0 +1,35 @@
+/* FK.market — кастомные стили поверх Tailwind */
+:root {
+  color-scheme: light dark;
+}
+html { scroll-behavior: smooth; }
+body { font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+
+.fk-logo {
+  background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.fk-grad-btn {
+  background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+}
+.fk-grad-btn:hover { filter: brightness(1.08); }
+
+.fk-card {
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.fk-card:hover {
+  transform: translateY(-2px);
+}
+
+/* мягкая рамка-свечение для категорий */
+.fk-glow:hover {
+  box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.45);
+}
+
+/* скрытие скроллбара в табах */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

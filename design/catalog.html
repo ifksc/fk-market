@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Каталог — FK.market</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo-a.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:{50:'#eef2ff',500:'#6366f1',600:'#4f46e5',700:'#4338ca'},accent:{500:'#10b981'}}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="assets/theme.js"></script>
+<script src="assets/layout.js" defer></script>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+<div data-fk-header="catalog"></div>
+
+<main class="max-w-7xl mx-auto px-4 py-8">
+  <!-- Breadcrumbs + title -->
+  <nav class="text-xs text-gray-500 dark:text-slate-400 mb-2"><a href="index.html" class="hover:text-brand-600">Главная</a> / <span>Каталог</span></nav>
+  <div class="flex items-end justify-between flex-wrap gap-3 mb-6">
+    <div>
+      <h1 class="text-3xl font-bold">Каталог</h1>
+      <p class="text-sm text-gray-500 dark:text-slate-400 mt-1">12 430 товаров · все категории</p>
+    </div>
+    <div class="flex items-center gap-2 text-sm">
+      <label class="text-gray-500">Сортировка:</label>
+      <select class="h-10 px-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+        <option>По популярности</option><option>По цене ↑</option><option>По цене ↓</option><option>Сначала новые</option><option>По рейтингу</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Chips categories -->
+  <div class="flex gap-2 overflow-x-auto no-scrollbar pb-3 mb-6">
+    <a href="#" class="px-4 h-9 flex items-center rounded-full fk-grad-btn text-white text-sm whitespace-nowrap">Все</a>
+    <a href="#ai" class="px-4 h-9 flex items-center gap-1.5 rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">ИИ-аккаунты <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full fk-grad-btn text-white">NEW</span></a>
+    <a href="#vpn" class="px-4 h-9 flex items-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">VPN</a>
+    <a href="#skins" class="px-4 h-9 flex items-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">Скины Steam</a>
+    <a href="#keys" class="px-4 h-9 flex items-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">Ключи игр</a>
+    <a href="#subs" class="px-4 h-9 flex items-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">Подписки</a>
+    <a href="#accounts" class="px-4 h-9 flex items-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">Аккаунты</a>
+    <a href="#services" class="px-4 h-9 flex items-center rounded-full bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 text-sm whitespace-nowrap">Услуги</a>
+  </div>
+
+  <div class="grid lg:grid-cols-[260px_1fr] gap-6">
+    <!-- Filters -->
+    <aside class="space-y-4">
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+        <div class="font-semibold mb-3">Цена, ₽</div>
+        <div class="flex items-center gap-2">
+          <input type="number" placeholder="от 0" class="w-full h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-800 bg-transparent text-sm">
+          <input type="number" placeholder="до 10 000" class="w-full h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-800 bg-transparent text-sm">
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+        <div class="font-semibold mb-3">Тип товара</div>
+        <div class="space-y-2 text-sm">
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500" checked> Цифровые ключи <span class="text-gray-400 ml-auto">3 410</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500"> Аккаунты <span class="text-gray-400 ml-auto">1 580</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500"> ИИ-аккаунты <span class="text-gray-400 ml-auto">280</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500"> Скины/предметы <span class="text-gray-400 ml-auto">4 820</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500"> Подписки <span class="text-gray-400 ml-auto">920</span></label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500"> Услуги <span class="text-gray-400 ml-auto">340</span></label>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+        <div class="font-semibold mb-3">Рейтинг</div>
+        <div class="space-y-2 text-sm">
+          <label class="flex items-center gap-2"><input type="radio" name="rating" class="accent-brand-500"> 4.5+ ★</label>
+          <label class="flex items-center gap-2"><input type="radio" name="rating" class="accent-brand-500"> 4.0+ ★</label>
+          <label class="flex items-center gap-2"><input type="radio" name="rating" class="accent-brand-500"> 3.0+ ★</label>
+        </div>
+      </div>
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+        <div class="font-semibold mb-3">Способ выдачи</div>
+        <div class="space-y-2 text-sm">
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500" checked> Автоматическая</label>
+          <label class="flex items-center gap-2"><input type="checkbox" class="accent-brand-500"> Ручная</label>
+        </div>
+      </div>
+      <button class="w-full h-11 rounded-xl fk-grad-btn text-white font-medium">Применить фильтры</button>
+    </aside>
+
+    <!-- Products grid -->
+    <section>
+      <!-- ИИ-блок -->
+      <div id="ai" class="mb-4 -mt-2 flex items-center gap-2">
+        <h2 class="text-xl font-bold">ИИ-аккаунты</h2>
+        <span class="text-[10px] font-bold px-2 py-0.5 rounded-full fk-grad-btn text-white">NEW</span>
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 mb-10">
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-brand-500 via-fuchsia-500 to-pink-500 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M9 4.5v15M15 4.5v15M4.5 9h15M4.5 15h15"/><circle cx="12" cy="12" r="9"/></svg><span class="absolute top-3 left-3 px-2 py-1 rounded-md bg-brand-500 text-white text-[10px] font-bold">NEW</span></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.9 · 612</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">ChatGPT Plus · 1 месяц (личный)</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">1 490 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-orange-500 to-amber-500 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="m12 3 2 7h7l-5.5 4 2 7L12 17l-5.5 4 2-7L3 10h7z"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.8 · 428</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">Claude Pro · 1 месяц</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">1 690 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-slate-700 to-slate-900 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 4h16v16H4z"/><path d="M8 12h8M12 8v8"/></svg><span class="absolute top-3 left-3 px-2 py-1 rounded-md bg-slate-900/70 text-white text-[10px] font-bold">HOT</span></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.7 · 1 084</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">Midjourney Standard · 1 мес</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">2 290 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-emerald-500 to-cyan-500 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1"><path d="M4 17 10 11 14 15 20 9"/><path d="M14 9h6v6"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.8 · 203</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">OpenAI API · ключ на 5$ кредитов</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">590 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+      </div>
+
+      <h2 id="all" class="text-xl font-bold mb-4">Все товары</h2>
+      <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-indigo-500 to-blue-600 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="absolute top-3 left-3 px-2 py-1 rounded-md bg-red-500 text-white text-[10px] font-bold">-35%</span></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.9 · 1 203</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">NordVPN Premium 1 год</div><div class="mt-3 flex items-end justify-between"><div><div class="font-extrabold">1 290 ₽</div><div class="text-xs text-gray-400 line-through">1 990 ₽</div></div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-orange-500 to-rose-600 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 3 7v10l9 5 9-5V7z"/></svg><span class="absolute top-3 left-3 px-2 py-1 rounded-md bg-slate-900/70 text-white text-[10px] font-bold">HOT</span></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.8 · 842</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">AK-47 Redline (FT) · CS2</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">3 450 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-emerald-500 to-teal-600 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 12a9 9 0 1 0 18 0 9 9 0 0 0-18 0zM12 7v5l3 3"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>5.0 · 3 015</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">Spotify Premium · 12 мес (Family)</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">990 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-fuchsia-500 to-purple-700 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="15" r="4"/><path d="m10.5 12 8-8M18 6l2 2M16 8l2 2"/></svg><span class="absolute top-3 left-3 px-2 py-1 rounded-md bg-brand-500 text-white text-[10px] font-bold">NEW</span></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.7 · 128</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">Cyberpunk 2077: Phantom Liberty</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">2 190 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-sky-500 to-indigo-600 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.6 · 512</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">ExpressVPN · 12 месяцев</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">3 490 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-rose-500 to-red-600 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 2 3 7v10l9 5 9-5V7z"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.9 · 2 301</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">AWP Asiimov (MW) · CS2</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">8 790 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-yellow-500 to-orange-500 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.5 · 94</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">Аккаунт Netflix Premium (30 дней)</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">290 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+        <a href="product.html" class="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden">
+          <div class="aspect-[4/3] bg-gradient-to-br from-violet-500 to-fuchsia-500 relative flex items-center justify-center"><svg class="w-14 h-14 text-white/80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m13 2-1 9h6l-8 11 1-9H5z"/></svg></div>
+          <div class="p-4"><div class="flex items-center gap-1 text-xs text-gray-500 mb-1"><svg class="w-3 h-3 fill-yellow-400 text-yellow-400" viewBox="0 0 24 24"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>4.8 · 1 842</div><div class="font-semibold line-clamp-2 min-h-[44px] text-sm">Накрутка подписчиков TG · 1 000</div><div class="mt-3 flex items-end justify-between"><div class="font-extrabold">390 ₽</div><div class="w-8 h-8 rounded-lg fk-grad-btn text-white flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg></div></div></div>
+        </a>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-8 flex items-center justify-between">
+        <div class="text-sm text-gray-500">Показано 8 из 12 430</div>
+        <div class="flex items-center gap-1">
+          <button class="w-9 h-9 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900">‹</button>
+          <button class="w-9 h-9 rounded-lg fk-grad-btn text-white">1</button>
+          <button class="w-9 h-9 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900">2</button>
+          <button class="w-9 h-9 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900">3</button>
+          <span class="px-2 text-gray-400">…</span>
+          <button class="w-9 h-9 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900">1 554</button>
+          <button class="w-9 h-9 rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900">›</button>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div data-fk-footer></div>
+</body></html>

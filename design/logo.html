@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>FK.market — Бренд-бук</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo-a.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:{50:'#eef2ff',500:'#6366f1',600:'#4f46e5',700:'#4338ca'},accent:{500:'#10b981'}}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="assets/theme.js"></script>
+<script src="assets/layout.js" defer></script>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+<div data-fk-header="brand"></div>
+
+<main class="max-w-7xl mx-auto px-4 py-10">
+  <div class="mb-10">
+    <div class="text-sm text-gray-500 dark:text-slate-400">Дизайн · Бренд-бук</div>
+    <h1 class="text-3xl md:text-4xl font-bold mt-1">Логотип FK.market</h1>
+    <p class="text-gray-600 dark:text-slate-400 mt-2 max-w-2xl">Четыре концепции на выбор. Логотип состоит из графического знака (80×80, square 20px radius) и словесной марки. Градиент бренда: indigo → violet → pink.</p>
+  </div>
+
+  <!-- Wordmark -->
+  <section class="mb-12">
+    <div class="text-xs uppercase tracking-wider text-gray-500 mb-3">Wordmark (горизонтальный)</div>
+    <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-10 flex items-center justify-center">
+      <img src="assets/logo-wordmark.svg" alt="FK.market wordmark" class="max-w-full h-20">
+    </div>
+  </section>
+
+  <!-- 4 концепции -->
+  <section class="mb-12">
+    <div class="text-xs uppercase tracking-wider text-gray-500 mb-3">Концепции знака</div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- A -->
+      <div class="bg-white dark:bg-slate-900 border-2 border-brand-500 rounded-2xl p-6">
+        <div class="aspect-square bg-gray-50 dark:bg-slate-950 rounded-xl flex items-center justify-center mb-4">
+          <img src="assets/logo-a.svg" alt="" class="w-28 h-28">
+        </div>
+        <div class="flex items-center gap-2 mb-1">
+          <div class="font-semibold">A — Squircle</div>
+          <span class="text-[10px] bg-brand-500 text-white px-2 py-0.5 rounded-full">Текущий</span>
+        </div>
+        <p class="text-xs text-gray-500 dark:text-slate-400">Градиентный квадрат + FK белым. Универсальный, хорошо читается в маленьком размере (favicon, avatar).</p>
+      </div>
+      <!-- B -->
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6">
+        <div class="aspect-square bg-gray-50 dark:bg-slate-950 rounded-xl flex items-center justify-center mb-4">
+          <img src="assets/logo-b.svg" alt="" class="w-28 h-28">
+        </div>
+        <div class="font-semibold mb-1">B — Shield & Bolt</div>
+        <p class="text-xs text-gray-500 dark:text-slate-400">Щит + молния. Сигналит «защищённая мгновенная выдача». Подходит под тематику VPN и безопасности.</p>
+      </div>
+      <!-- C -->
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6">
+        <div class="aspect-square bg-gray-50 dark:bg-slate-950 rounded-xl flex items-center justify-center mb-4">
+          <img src="assets/logo-c.svg" alt="" class="w-28 h-28">
+        </div>
+        <div class="font-semibold mb-1">C — Ring</div>
+        <p class="text-xs text-gray-500 dark:text-slate-400">Тёмный круг с градиентной обводкой. Премиум-образ, хорошо выглядит на светлой шапке.</p>
+      </div>
+      <!-- D -->
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6">
+        <div class="aspect-square bg-gray-50 dark:bg-slate-950 rounded-xl flex items-center justify-center mb-4">
+          <img src="assets/logo-d.svg" alt="" class="w-28 h-28">
+        </div>
+        <div class="font-semibold mb-1">D — Monogram</div>
+        <p class="text-xs text-gray-500 dark:text-slate-400">Геометричная монограмма F+K, собранная на общей вертикали. Минимализм, без градиента внутри.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Размеры -->
+  <section class="mb-12">
+    <div class="text-xs uppercase tracking-wider text-gray-500 mb-3">Масштабирование (A)</div>
+    <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-10 flex items-end justify-around flex-wrap gap-8">
+      <div class="text-center"><img src="assets/logo-a.svg" class="w-32 h-32 mx-auto" alt=""><div class="text-xs text-gray-500 mt-2">128px</div></div>
+      <div class="text-center"><img src="assets/logo-a.svg" class="w-16 h-16 mx-auto" alt=""><div class="text-xs text-gray-500 mt-2">64px</div></div>
+      <div class="text-center"><img src="assets/logo-a.svg" class="w-10 h-10 mx-auto" alt=""><div class="text-xs text-gray-500 mt-2">40px</div></div>
+      <div class="text-center"><img src="assets/logo-a.svg" class="w-6 h-6 mx-auto" alt=""><div class="text-xs text-gray-500 mt-2">24px (favicon)</div></div>
+    </div>
+  </section>
+
+  <!-- Контексты -->
+  <section class="mb-12 grid md:grid-cols-2 gap-4">
+    <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-10 flex items-center justify-center">
+      <img src="assets/logo-wordmark.svg" class="h-16" alt="">
+    </div>
+    <div class="bg-slate-950 rounded-2xl p-10 flex items-center justify-center">
+      <img src="assets/logo-wordmark.svg" class="h-16 invert-0" alt="">
+    </div>
+  </section>
+
+  <!-- Палитра -->
+  <section class="mb-12">
+    <div class="text-xs uppercase tracking-wider text-gray-500 mb-3">Палитра</div>
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div class="rounded-2xl p-4" style="background:#6366f1"><div class="text-white font-semibold">Indigo-500</div><div class="text-white/80 text-xs">#6366f1</div></div>
+      <div class="rounded-2xl p-4" style="background:#8b5cf6"><div class="text-white font-semibold">Violet-500</div><div class="text-white/80 text-xs">#8b5cf6</div></div>
+      <div class="rounded-2xl p-4" style="background:#ec4899"><div class="text-white font-semibold">Pink-500</div><div class="text-white/80 text-xs">#ec4899</div></div>
+      <div class="rounded-2xl p-4" style="background:#10b981"><div class="text-white font-semibold">Emerald-500</div><div class="text-white/80 text-xs">#10b981</div></div>
+      <div class="rounded-2xl p-4 border border-gray-200 dark:border-slate-800" style="background:#0f172a"><div class="text-white font-semibold">Slate-900</div><div class="text-white/80 text-xs">#0f172a</div></div>
+    </div>
+  </section>
+
+  <!-- Типографика -->
+  <section class="mb-12">
+    <div class="text-xs uppercase tracking-wider text-gray-500 mb-3">Типографика</div>
+    <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-8">
+      <div class="text-sm text-gray-500 mb-4">Inter · 400, 500, 600, 700, 800</div>
+      <div class="space-y-2">
+        <div class="text-4xl font-extrabold tracking-tight">Мгновенная выдача</div>
+        <div class="text-2xl font-bold">Популярные товары</div>
+        <div class="text-base">Основной текст для карточек и описаний.</div>
+        <div class="text-xs text-gray-500">Мелкий текст · подписи, мета-информация</div>
+      </div>
+    </div>
+  </section>
+
+  <div class="bg-brand-50 dark:bg-slate-900 border border-brand-500/30 rounded-2xl p-6 text-sm">
+    <b>Что решить:</b> по умолчанию прототип использует концепцию <b>A (Squircle)</b>. Если выбираешь другую — поменяем один файл <code class="bg-white dark:bg-slate-800 px-1 rounded">assets/logo-a.svg</code> и логотип сменится на всём сайте.
+  </div>
+</main>
+
+<div data-fk-footer></div>
+</body></html>

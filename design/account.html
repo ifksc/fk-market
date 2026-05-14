@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Личный кабинет — FK.market</title>
+<link rel="icon" type="image/svg+xml" href="assets/logo-a.svg">
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{brand:{50:'#eef2ff',500:'#6366f1',600:'#4f46e5',700:'#4338ca'},accent:{500:'#10b981'}}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/app.css">
+<script src="assets/theme.js"></script>
+<script src="assets/layout.js" defer></script>
+</head>
+<body class="bg-gray-50 text-gray-900 dark:bg-slate-950 dark:text-slate-100 antialiased">
+<div data-fk-header></div>
+
+<main class="max-w-7xl mx-auto px-4 py-8">
+  <h1 class="text-3xl font-bold mb-6">Личный кабинет</h1>
+
+  <div class="grid lg:grid-cols-[260px_1fr] gap-6">
+    <!-- Sidebar -->
+    <aside class="space-y-4">
+      <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5 text-center">
+        <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-br from-indigo-500 via-fuchsia-500 to-pink-500 flex items-center justify-center text-white font-extrabold text-xl">А</div>
+        <div class="mt-3 font-semibold">Андрей Л.</div>
+        <div class="text-xs text-gray-500">kscandroid@gmail.com</div>
+      </div>
+      <nav class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-2 text-sm">
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg fk-grad-btn text-white font-medium"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3h7v9H3zm11 0h7v5h-7zm0 9h7v9h-7zM3 15h7v6H3z"/></svg>Обзор</a>
+        <a href="#orders" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18"/></svg>Заказы <span class="ml-auto text-xs text-gray-400">14</span></a>
+        <a href="#balance" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M2 10h20"/></svg>Баланс</a>
+        <a href="#fav" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-4.5-7-10a5 5 0 0 1 9-3 5 5 0 0 1 9 3c0 5.5-7 10-7 10"/></svg>Избранное</a>
+        <a href="#reviews" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 2 3 7 7 1-5 5 1 7-6-3-6 3 1-7-5-5 7-1z"/></svg>Мои отзывы</a>
+        <a href="#settings" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/></svg>Настройки</a>
+        <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Поддержка</a>
+        <div class="border-t border-gray-200 dark:border-slate-800 my-2"></div>
+        <a href="login.html" class="flex items-center gap-3 px-3 py-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>Выйти</a>
+      </nav>
+    </aside>
+
+    <!-- Content -->
+    <section class="space-y-6">
+      <!-- Stats -->
+      <div class="grid md:grid-cols-3 gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+          <div class="text-xs text-gray-500 mb-1">Баланс FKwallet</div>
+          <div class="text-2xl font-extrabold">4 320 ₽</div>
+          <button class="mt-3 h-9 px-3 rounded-lg fk-grad-btn text-white text-sm font-medium">Пополнить</button>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+          <div class="text-xs text-gray-500 mb-1">Всего заказов</div>
+          <div class="text-2xl font-extrabold">14</div>
+          <div class="text-xs text-accent-600 mt-2">+2 за месяц</div>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
+          <div class="text-xs text-gray-500 mb-1">Потрачено всего</div>
+          <div class="text-2xl font-extrabold">28 740 ₽</div>
+          <div class="text-xs text-gray-500 mt-2">кэшбэк 287 ₽</div>
+        </div>
+      </div>
+
+      <!-- Orders -->
+      <div id="orders" class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6">
+        <div class="flex items-center justify-between mb-4">
+          <div class="font-bold text-lg">История заказов</div>
+          <div class="flex items-center gap-2 text-sm">
+            <select class="h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-800 bg-transparent"><option>Все статусы</option><option>Оплачен</option><option>Ожидает оплаты</option><option>Возврат</option></select>
+          </div>
+        </div>
+
+        <!-- Order -->
+        <div class="border border-gray-200 dark:border-slate-800 rounded-xl mb-3">
+          <div class="p-4 flex items-center gap-4 flex-wrap">
+            <div>
+              <div class="text-xs text-gray-500">Заказ #FK-2026-08421</div>
+              <div class="text-sm font-medium">23 апреля, 14:28</div>
+            </div>
+            <span class="px-2 py-1 rounded-md bg-accent-500/15 text-accent-600 text-xs font-semibold">Оплачен</span>
+            <div class="ml-auto text-right">
+              <div class="font-extrabold">2 280 ₽</div>
+              <div class="text-xs text-gray-500">2 товара · FKwallet карта</div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 dark:border-slate-800 p-4 space-y-2">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-indigo-500 to-blue-600"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm line-clamp-1">NordVPN Premium 1 год</div>
+                <div class="text-xs text-gray-500 font-mono">NVPN-2Y45-A7XQ-LP9F</div>
+              </div>
+              <button class="text-xs text-brand-600 hover:underline">Скопировать</button>
+              <button class="text-xs text-brand-600 hover:underline">Скачать</button>
+            </div>
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600"></div>
+              <div class="flex-1 min-w-0">
+                <div class="text-sm line-clamp-1">Spotify Premium · 12 мес (Family)</div>
+                <div class="text-xs text-accent-600">Выдано на you@spotify.com</div>
+              </div>
+              <button class="text-xs text-brand-600 hover:underline">Повторить</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="border border-gray-200 dark:border-slate-800 rounded-xl mb-3">
+          <div class="p-4 flex items-center gap-4 flex-wrap">
+            <div>
+              <div class="text-xs text-gray-500">Заказ #FK-2026-07890</div>
+              <div class="text-sm font-medium">18 апреля, 20:11</div>
+            </div>
+            <span class="px-2 py-1 rounded-md bg-yellow-500/15 text-yellow-600 text-xs font-semibold">Ожидает оплаты</span>
+            <div class="ml-auto text-right">
+              <div class="font-extrabold">3 450 ₽</div>
+              <div class="text-xs text-gray-500">AK-47 Redline · 1 шт</div>
+            </div>
+          </div>
+          <div class="border-t border-gray-200 dark:border-slate-800 p-4 flex items-center gap-3">
+            <div class="text-xs text-gray-500">Ссылка на оплату активна ещё 42 минуты</div>
+            <a href="#" class="ml-auto h-9 px-3 rounded-lg fk-grad-btn text-white text-sm font-medium flex items-center">Оплатить</a>
+            <button class="h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-800 text-sm">Отменить</button>
+          </div>
+        </div>
+
+        <div class="border border-gray-200 dark:border-slate-800 rounded-xl">
+          <div class="p-4 flex items-center gap-4 flex-wrap">
+            <div>
+              <div class="text-xs text-gray-500">Заказ #FK-2026-07102</div>
+              <div class="text-sm font-medium">10 апреля, 09:42</div>
+            </div>
+            <span class="px-2 py-1 rounded-md bg-gray-500/15 text-gray-600 dark:text-slate-300 text-xs font-semibold">Возврат</span>
+            <div class="ml-auto text-right">
+              <div class="font-extrabold">590 ₽</div>
+              <div class="text-xs text-gray-500">Steam пополнение · возврат 590 ₽ на баланс</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="mt-4 w-full h-10 rounded-xl border border-gray-200 dark:border-slate-800 text-sm font-medium hover:bg-gray-50 dark:hover:bg-slate-800">Показать ещё 11 заказов</button>
+      </div>
+
+      <!-- Balance transactions -->
+      <div id="balance" class="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6">
+        <div class="font-bold text-lg mb-4">Движения по балансу</div>
+        <div class="divide-y divide-gray-200 dark:divide-slate-800">
+          <div class="py-3 flex items-center gap-3 text-sm"><div class="w-8 h-8 rounded-lg bg-accent-500/15 text-accent-600 flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12l7-7 7 7"/></svg></div><div class="flex-1"><div>Пополнение через FKwallet</div><div class="text-xs text-gray-500">23 апреля, 12:00</div></div><div class="font-semibold text-accent-600">+5 000 ₽</div></div>
+          <div class="py-3 flex items-center gap-3 text-sm"><div class="w-8 h-8 rounded-lg bg-red-500/15 text-red-500 flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 19V5M5 12l7 7 7-7"/></svg></div><div class="flex-1"><div>Оплата заказа #FK-2026-08421</div><div class="text-xs text-gray-500">23 апреля, 14:28</div></div><div class="font-semibold">−680 ₽</div></div>
+          <div class="py-3 flex items-center gap-3 text-sm"><div class="w-8 h-8 rounded-lg bg-accent-500/15 text-accent-600 flex items-center justify-center"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 5 0 14M5 12l7-7 7 7"/></svg></div><div class="flex-1"><div>Возврат по заказу #FK-2026-07102</div><div class="text-xs text-gray-500">10 апреля, 11:15</div></div><div class="font-semibold text-accent-600">+590 ₽</div></div>
+        </div>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div data-fk-footer></div>
+</body></html>

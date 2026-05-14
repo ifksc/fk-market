@@ -1,0 +1,8 @@
+// FK.market — секция fkwallet_op в src/config/services.php
+
+    'fkwallet_op' => [
+        'public_key'          => env('FKWALLET_OP_KEY'),
+        'private_key'         => env('FKWALLET_OP_PRIVATE_KEY'),
+        'base_url'            => env('FKWALLET_OP_BASE_URL', 'https://api.fkwallet.io/v1'),
+        'default_currency_id' => env('FKWALLET_OP_CURRENCY_ID', 1),
+    ],
