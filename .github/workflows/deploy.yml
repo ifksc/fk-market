@@ -109,14 +109,18 @@ jobs:
           for f in "$CUSTOM/views/emails/"*.blade.php;  do [ -f "$f" ] && cp -f "$f" "$SRC/resources/views/emails/"; done
 
           cd "$BACK"
+          # NB: каждой docker exec нужен `< /dev/null`, иначе она читает stdin
+          # этого скрипта (он же stdin ssh-сессии), съедает остаток heredoc'а,
+          # bash видит EOF и тихо выходит с кодом 0. Из-за этого предыдущие
+          # деплои показывались как success, но restart fk_app не вызывался.
           echo "--- migrate ---"
-          docker compose exec -T app php artisan migrate --force
+          docker compose exec -T app php artisan migrate --force < /dev/null
           echo "--- config:clear ---"
-          docker compose exec -T app php artisan config:clear
+          docker compose exec -T app php artisan config:clear < /dev/null
           echo "--- route:clear ---"
-          docker compose exec -T app php artisan route:clear
+          docker compose exec -T app php artisan route:clear < /dev/null
           echo "--- view:clear ---"
-          docker compose exec -T app php artisan view:clear
+          docker compose exec -T app php artisan view:clear < /dev/null
 
           # Перезапуск API и воркера, чтобы они подцепили обновлённый код.
           # fk_app использует `php artisan serve` (built-in PHP server) — это
