@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+/* ---------- Тёмная тема через class на <html> ---------- */
+@variant dark (&:where(.dark, .dark *));
+
+/* ---------- Бренд-токены FK.market ---------- */
+@theme {
+  --font-sans: var(--font-inter);
+
+  /* indigo→violet→pink бренд */
+  --color-brand-50:  #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-400: #818cf8;
+  --color-brand-500: #6366f1;
+  --color-brand-600: #4f46e5;
+  --color-brand-700: #4338ca;
+  --color-brand-800: #3730a3;
+  --color-brand-900: #312e81;
+
+  /* emerald-акцент (успех / в наличии) */
+  --color-accent-50:  #ecfdf5;
+  --color-accent-500: #10b981;
+  --color-accent-600: #059669;
+}
+
+/* ---------- Светлый/тёмный фон ---------- */
+:root {
+  color-scheme: light dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #f9fafb;
+  color: #111827;
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+html.dark body {
+  background-color: #020617;
+  color: #f1f5f9;
+}
+
+/* ---------- Утилитарные классы из прототипа ---------- */
+.fk-logo {
+  background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.fk-grad-btn {
+  background-image: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  color: #fff;
+}
+.fk-grad-btn:hover {
+  filter: brightness(1.08);
+}
+
+.fk-card {
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+}
+.fk-card:hover {
+  transform: translateY(-2px);
+}
+
+.fk-glow:hover {
+  box-shadow: 0 10px 40px -10px rgba(99, 102, 241, 0.45);
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

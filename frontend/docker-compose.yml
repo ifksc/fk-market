@@ -1,0 +1,18 @@
+services:
+  frontend:
+    build:
+      context: .
+    container_name: fk_frontend
+    restart: unless-stopped
+    ports:
+      # 127.0.0.1 — наружу не светим, доступно только локально на сервере
+      # nginx (системный) проксирует на этот порт
+      - "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_TELEMETRY_DISABLED: 1
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
