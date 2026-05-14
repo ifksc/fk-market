@@ -7,7 +7,7 @@ const TOKEN_KEY = 'fk-user-token';
 
 export type AuthUser = {
   id: number;
-  email: string;
+  email: string | null;
   name: string | null;
   phone: string | null;
   role: 'customer' | 'admin' | 'seller' | 'moderator';
@@ -179,11 +179,38 @@ export async function changePassword(input: {
 
 export async function changeEmailRequest(input: {
   new_email: string;
-  password: string;
-}): Promise<{ pending_email: string }> {
-  const r = await authFetch<{ data: { pending_email: string; sent: boolean } }>('/me/change-email', {
+  password?: string; // не нужен для первого ввода email у OAuth-юзера
+}): Promise<{ pending_email: string; first_time?: boolean }> {
+  const r = await authFetch<{ data: { pending_email: string; sent: boolean; first_time?: boolean } }>('/me/change-email', {
     method: 'POST',
     body: JSON.stringify(input),
   });
-  return { pending_email: r.data.pending_email };
+  return { pending_email: r.data.pending_email, first_time: r.data.first_time };
+}
+
+// ---------- OAuth ----------
+export type TelegramAuthPayload = {
+  id: number;
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+  auth_date: number;
+  hash: string;
+};
+
+export async function oauthTelegram(payload: TelegramAuthPayload): Promise<{
+  token: string;
+  user: AuthUser;
+  needs_email: boolean;
+}> {
+  const r = await authFetch<{ data: { token: string; user: AuthUser; needs_email: boolean } }>(
+    '/auth/oauth/telegram/callback',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  );
+  setUserToken(r.data.token);
+  return r.data;
 }

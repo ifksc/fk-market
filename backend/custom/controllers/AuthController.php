@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Mail\ResetPasswordMail;
 use App\Mail\VerifyEmailMail;
 use App\Models\EmailVerification;
+use App\Models\OauthIdentity;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -178,16 +179,26 @@ class AuthController extends Controller
     public function changeEmail(Request $request): JsonResponse
     {
         $user = $request->user();
-        $data = $request->validate([
-            'new_email' => ['required', 'email', 'max:190', 'different:current_email', Rule::unique('users', 'email')],
-            'password' => ['required', 'string'],
-        ], [], ['current_email' => 'текущий email']);
 
-        if (!$user->isEmailVerified()) {
-            return response()->json(['message' => 'Сначала подтвердите текущий email'], 422);
+        // Свежий OAuth-юзер (Telegram и т.п.) — email ещё не установлен, пароля нет.
+        // В этом случае разрешаем установить email без подтверждения текущего/пароля.
+        $isFirstTime = $user->email === null;
+
+        $rules = [
+            'new_email' => ['required', 'email', 'max:190', Rule::unique('users', 'email')],
+        ];
+        if (!$isFirstTime) {
+            $rules['password'] = ['required', 'string'];
         }
-        if (!Hash::check($data['password'], (string) $user->password)) {
-            return response()->json(['message' => 'Неверный пароль'], 422);
+        $data = $request->validate($rules);
+
+        if (!$isFirstTime) {
+            if (!$user->isEmailVerified()) {
+                return response()->json(['message' => 'Сначала подтвердите текущий email'], 422);
+            }
+            if (!Hash::check($data['password'], (string) $user->password)) {
+                return response()->json(['message' => 'Неверный пароль'], 422);
+            }
         }
 
         $verification = EmailVerification::issue($user, $data['new_email']);
@@ -197,6 +208,7 @@ class AuthController extends Controller
             'data' => [
                 'pending_email' => $data['new_email'],
                 'sent' => true,
+                'first_time' => $isFirstTime,
             ],
         ]);
     }
@@ -365,6 +377,108 @@ class AuthController extends Controller
         }
 
         return response()->json(['data' => ['ok' => true]]);
+    }
+
+    /**
+     * POST /api/auth/oauth/telegram/callback
+     *
+     * Telegram Login Widget после успешной авторизации шлёт payload:
+     *   { id, first_name, last_name?, username?, photo_url?, auth_date, hash }
+     *
+     * Проверяем подпись по доке Telegram:
+     *   data_check_string = "{key}={value}\n..." (отсортированные ключи, без hash)
+     *   secret_key = sha256(bot_token, raw_output=true)
+     *   computed_hash = hmac_sha256(data_check_string, secret_key)
+     *   computed_hash должен равняться hash
+     *
+     * auth_date не должна быть старше 24 часов — защита от replay.
+     *
+     * Email Telegram не отдаёт, поэтому создаём User с email=NULL.
+     * Фронт после такого логина просит юзера ввести email на /account/profile.
+     */
+    public function oauthTelegram(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'id' => ['required', 'integer'],
+            'first_name' => ['nullable', 'string', 'max:120'],
+            'last_name' => ['nullable', 'string', 'max:120'],
+            'username' => ['nullable', 'string', 'max:120'],
+            'photo_url' => ['nullable', 'string', 'max:500'],
+            'auth_date' => ['required', 'integer'],
+            'hash' => ['required', 'string', 'size:64'],
+        ]);
+
+        $botToken = (string) config('services.telegram.bot_token');
+        if ($botToken === '') {
+            return response()->json(['message' => 'Telegram bot не настроен'], 503);
+        }
+
+        // 1. Проверка подписи
+        $hash = $data['hash'];
+        $pairs = array_filter($data, fn ($v, $k) => $k !== 'hash' && $v !== null, ARRAY_FILTER_USE_BOTH);
+        ksort($pairs);
+        $dataCheckString = implode("\n", array_map(fn ($k, $v) => "{$k}={$v}", array_keys($pairs), array_values($pairs)));
+        $secretKey = hash('sha256', $botToken, true);
+        $computed = hash_hmac('sha256', $dataCheckString, $secretKey);
+
+        if (!hash_equals($computed, $hash)) {
+            Log::warning('Telegram OAuth: bad signature', ['id' => $data['id']]);
+            return response()->json(['message' => 'Подпись не сходится'], 422);
+        }
+
+        // 2. Защита от replay — auth_date свежее 24ч
+        if (time() - (int) $data['auth_date'] > 86400) {
+            return response()->json(['message' => 'Сессия устарела, попробуйте войти ещё раз'], 422);
+        }
+
+        $providerUid = (string) $data['id'];
+        $displayName = trim(($data['first_name'] ?? '') . ' ' . ($data['last_name'] ?? '')) ?: ($data['username'] ?? 'TG '.$providerUid);
+
+        // 3. Найти/создать связку oauth_identities
+        $user = DB::transaction(function () use ($providerUid, $displayName, $data) {
+            $identity = OauthIdentity::where('provider', 'telegram')
+                ->where('provider_uid', $providerUid)
+                ->first();
+
+            if ($identity) {
+                $identity->update(['raw_profile' => $data]);
+                return $identity->user;
+            }
+
+            // Свежий вход через Telegram — создаём пустого user (email=null).
+            // Email пользователь укажет на /account/profile, чтобы получать выдачу.
+            $user = User::create([
+                'email' => null,
+                'name' => $displayName,
+                'role' => 'customer',
+            ]);
+
+            OauthIdentity::create([
+                'user_id' => $user->id,
+                'provider' => 'telegram',
+                'provider_uid' => $providerUid,
+                'raw_profile' => $data,
+            ]);
+            return $user;
+        });
+
+        if ($user->is_blocked) {
+            return response()->json(['message' => 'Аккаунт заблокирован'], 403);
+        }
+
+        $token = $this->issueToken($user, $request);
+
+        if ($user->isEmailVerified()) {
+            $this->linkGuestOrders($user);
+        }
+
+        return response()->json([
+            'data' => [
+                'token' => $token,
+                'user' => $this->serializeUser($user->refresh()),
+                'needs_email' => $user->email === null,
+            ],
+        ]);
     }
 
     // ---------- helpers ----------

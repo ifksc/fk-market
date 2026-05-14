@@ -6,7 +6,10 @@ import { Suspense, useState } from 'react';
 import { LogoMark } from '@/components/Logo';
 import { toggleTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
-import { AuthError, login, register } from '@/lib/auth';
+import { TelegramLoginButton, type TelegramUser } from '@/components/TelegramLoginButton';
+import { AuthError, login, oauthTelegram, register } from '@/lib/auth';
+
+const TELEGRAM_BOT_USERNAME = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME ?? 'fkmarket_bot';
 
 export default function LoginPage() {
   return (
@@ -32,6 +35,25 @@ function LoginInner() {
 
   const oauthClick = (provider: string) => {
     alert(`OAuth ${provider} — следующий этап.`);
+  };
+
+  const onTelegramAuth = async (tgUser: TelegramUser) => {
+    setError(null);
+    setBusy(true);
+    try {
+      const { user, needs_email } = await oauthTelegram(tgUser);
+      setUser(user);
+      // Telegram не отдаёт email — направим юзера на профиль ввести его
+      if (needs_email) {
+        router.push('/account/profile?need=email');
+      } else {
+        router.push(user.email_verified ? redirectTo : '/verify-email');
+      }
+    } catch (e) {
+      setError(e instanceof AuthError ? e.message : 'Telegram-логин не удался');
+    } finally {
+      setBusy(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -111,7 +133,7 @@ function LoginInner() {
           </p>
 
           {/* OAuth кнопки */}
-          <div className="grid grid-cols-3 gap-2 mb-5">
+          <div className="grid grid-cols-2 gap-2 mb-3">
             <button
               type="button"
               onClick={() => oauthClick('VK')}
@@ -131,17 +153,14 @@ function LoginInner() {
             >
               Я
             </button>
-            <button
-              type="button"
-              onClick={() => oauthClick('Telegram')}
-              className="h-11 rounded-xl text-white font-medium flex items-center justify-center gap-2"
-              style={{ background: '#0088CC' }}
-            >
-              <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                <path d="m22 3-5 18-6.5-6 9.5-9L7 14 2 12l20-9z" />
-              </svg>
-              TG
-            </button>
+          </div>
+          <div className="flex justify-center mb-5 min-h-[40px]">
+            <TelegramLoginButton
+              botUsername={TELEGRAM_BOT_USERNAME}
+              size="large"
+              cornerRadius={10}
+              onAuth={onTelegramAuth}
+            />
           </div>
 
           <div className="flex items-center gap-3 my-5 text-xs text-gray-400">
