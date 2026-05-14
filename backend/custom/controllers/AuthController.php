@@ -13,6 +13,7 @@ use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
@@ -459,18 +460,26 @@ class AuthController extends Controller
         }
 
         // 2. Валидируем id_token (JWT) по JWKS.
-        // Та же проблема с TCP-handshake к Telegram CDN — те же настройки.
+        //
+        // JWKS у Telegram меняется редко (раз в месяцы), а маршрут до их CDN
+        // нестабилен (см. 2026-05-15 в журнале решений). Поэтому:
+        //   - держим JWKS в Redis на 1 час;
+        //   - если кэш пуст — забираем по сети с теми же fast-fail настройками,
+        //     что и token endpoint;
+        //   - если ключ для текущего токена не нашёлся в кэше — однократно
+        //     инвалидируем и перетягиваем (могла произойти ротация).
         try {
-            $jwksResp = Http::connectTimeout(5)->timeout(15)
-                ->retry(2, 500, function ($e) {
-                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
-                }, throw: false)
-                ->get('https://oauth.telegram.org/.well-known/jwks.json');
-            if (!$jwksResp->ok()) {
-                throw new \RuntimeException('JWKS HTTP ' . $jwksResp->status());
+            $jwks = $this->fetchTelegramJwks(forceRefresh: false);
+            $keys = JWK::parseKeySet($jwks);
+            try {
+                $payload = (array) JWT::decode($idToken, $keys);
+            } catch (\Firebase\JWT\UnexpectedValueException $e) {
+                // Возможно ротация ключей — перетянем JWKS принудительно.
+                Log::info('Telegram JWKS cache miss for current token, refreshing');
+                $jwks = $this->fetchTelegramJwks(forceRefresh: true);
+                $keys = JWK::parseKeySet($jwks);
+                $payload = (array) JWT::decode($idToken, $keys);
             }
-            $keys = JWK::parseKeySet($jwksResp->json());
-            $payload = (array) JWT::decode($idToken, $keys);
         } catch (\Throwable $e) {
             Log::warning('Telegram OAuth id_token verify failed', ['error' => $e->getMessage()]);
             return response()->json(['message' => 'Подпись id_token не сошлась'], 422);
@@ -539,6 +548,45 @@ class AuthController extends Controller
     }
 
     // ---------- helpers ----------
+
+    /**
+     * Получить JWKS Telegram'а (с кэшем в Redis на 1 час).
+     *
+     * @param bool $forceRefresh инвалидировать кэш и перетянуть из сети.
+     * @return array{keys: array<int, array<string, mixed>>}
+     * @throws \RuntimeException если JWKS недоступен и кэша нет.
+     */
+    protected function fetchTelegramJwks(bool $forceRefresh = false): array
+    {
+        $cacheKey = 'telegram_jwks';
+
+        if ($forceRefresh) {
+            Cache::forget($cacheKey);
+        } else {
+            $cached = Cache::get($cacheKey);
+            if (is_array($cached) && !empty($cached['keys'])) {
+                return $cached;
+            }
+        }
+
+        $resp = Http::connectTimeout(5)->timeout(15)
+            ->retry(2, 500, function ($e) {
+                return $e instanceof \Illuminate\Http\Client\ConnectionException;
+            }, throw: false)
+            ->get('https://oauth.telegram.org/.well-known/jwks.json');
+
+        if (!$resp || !$resp->ok()) {
+            throw new \RuntimeException('JWKS HTTP ' . ($resp ? $resp->status() : 'no response'));
+        }
+
+        $data = $resp->json();
+        if (!is_array($data) || empty($data['keys'])) {
+            throw new \RuntimeException('JWKS payload invalid');
+        }
+
+        Cache::put($cacheKey, $data, 3600);
+        return $data;
+    }
 
     protected function issueToken(User $user, Request $request): string
     {
