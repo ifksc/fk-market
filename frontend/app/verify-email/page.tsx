@@ -35,9 +35,11 @@ export default function VerifyEmailPage() {
     }
   }, [user, router]);
 
-  // У OAuth-юзера может не быть email — отправляем его сначала указать его
+  // У OAuth-юзера может не быть email. Если пока ничего не указывал
+  // (нет pending) — отправляем сначала указать email. Если уже указал
+  // и ему уже отправлен код — оставляем на этой странице, чтобы ввёл код.
   useEffect(() => {
-    if (user && user.email === null) {
+    if (user && user.email === null && !user.pending_email) {
       router.replace('/account/profile?need=email');
     }
   }, [user, router]);
@@ -164,7 +166,7 @@ export default function VerifyEmailPage() {
           <h1 className="text-2xl font-bold mb-1">Подтвердите почту</h1>
           <p className="text-sm text-gray-500 mb-6">
             Мы отправили 6-значный код на<br />
-            <span className="font-semibold text-gray-700 dark:text-gray-300">{user.email}</span>
+            <span className="font-semibold text-gray-700 dark:text-gray-300">{user.pending_email ?? user.email}</span>
           </p>
 
           <div className="grid grid-cols-6 gap-2 mb-4">

@@ -12,6 +12,8 @@ export type AuthUser = {
   phone: string | null;
   role: 'customer' | 'admin' | 'seller' | 'moderator';
   email_verified: boolean;
+  /** Адрес, на который выслан код, ещё не подтверждённый. null если pending'а нет. */
+  pending_email: string | null;
   balance: number;
   created_at: string | null;
 };

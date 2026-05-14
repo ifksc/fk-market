@@ -43,6 +43,7 @@ export default function ProfilePage() {
       <EmailSection
         currentEmail={user.email}
         verified={user.email_verified}
+        pendingEmail={user.pending_email}
       />
 
       <PasswordSection />
@@ -121,13 +122,25 @@ function ProfileForm({
 
 // ---------- Email ----------
 
-function EmailSection({ currentEmail, verified }: { currentEmail: string | null; verified: boolean }) {
+function EmailSection({
+  currentEmail,
+  verified,
+  pendingEmail,
+}: {
+  currentEmail: string | null;
+  verified: boolean;
+  /** Pending email с бэка (пережил refresh страницы). */
+  pendingEmail: string | null;
+}) {
   const [open, setOpen] = useState(false);
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
-  const [pending, setPending] = useState<string | null>(null);
+  // Локальный «только что отправил» — для немедленного отображения после submit'а,
+  // до того как useAuth() переподтянет /api/me с обновлённым pending_email.
+  const [justSent, setJustSent] = useState<string | null>(null);
+  const pending = justSent ?? pendingEmail;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -139,7 +152,7 @@ function EmailSection({ currentEmail, verified }: { currentEmail: string | null;
         // Пароль нужен только для смены существующего email.
         ...(currentEmail ? { password } : {}),
       });
-      setPending(r.pending_email);
+      setJustSent(r.pending_email);
       setOpen(false);
       setPassword('');
     } catch (e) {

@@ -604,6 +604,16 @@ class AuthController extends Controller
 
     protected function serializeUser(User $user): array
     {
+        // Pending email — последний неиспользованный и не истёкший EmailVerification.
+        // Нужен фронту, чтобы:
+        //   1) не отправлять на /account/profile с /verify-email если код уже отправлен;
+        //   2) плашка «отправили код на X» переживала refresh страницы.
+        $pendingEmail = EmailVerification::where('user_id', $user->id)
+            ->whereNull('used_at')
+            ->where('expires_at', '>', now())
+            ->latest('id')
+            ->value('new_email');
+
         return [
             'id' => $user->id,
             'email' => $user->email,
@@ -611,6 +621,7 @@ class AuthController extends Controller
             'phone' => $user->phone,
             'role' => $user->role,
             'email_verified' => $user->isEmailVerified(),
+            'pending_email' => $pendingEmail,
             'balance' => (float) $user->balance,
             'created_at' => $user->created_at?->toIso8601String(),
         ];

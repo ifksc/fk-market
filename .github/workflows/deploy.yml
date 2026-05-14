@@ -65,6 +65,10 @@ jobs:
         if: steps.changes.outputs.backend == 'true'
         run: |
           ssh "$SSH_USER@$SSH_HOST" 'bash -s' <<'REMOTE'
+          # Debug: всё, что попадает сюда, дублируем в /tmp/fk_deploy.log
+          # на проде — чтобы можно было разобрать пост-фактум через ssh, без gh CLI.
+          exec > >(tee -a /tmp/fk_deploy.log) 2>&1
+          echo "===== deploy start $(date -u +%Y-%m-%dT%H:%M:%SZ) ====="
           set -euo pipefail
           BACK=/opt/fk.market/backend
           SRC=$BACK/src
@@ -105,9 +109,13 @@ jobs:
           for f in "$CUSTOM/views/emails/"*.blade.php;  do [ -f "$f" ] && cp -f "$f" "$SRC/resources/views/emails/"; done
 
           cd "$BACK"
+          echo "--- migrate ---"
           docker compose exec -T app php artisan migrate --force
+          echo "--- config:clear ---"
           docker compose exec -T app php artisan config:clear
+          echo "--- route:clear ---"
           docker compose exec -T app php artisan route:clear
+          echo "--- view:clear ---"
           docker compose exec -T app php artisan view:clear
 
           # Перезапуск API и воркера, чтобы они подцепили обновлённый код.
@@ -116,9 +124,16 @@ jobs:
           # файлы при изменении. Без рестарта правки контроллеров не применяются.
           # (Когда перейдём на FPM — будет достаточно `php artisan reload` или
           # config:clear, но пока — рестарт.)
-          docker restart fk_app >/dev/null
-          docker restart fk_worker >/dev/null
-          echo "backend deployed."
+          echo "--- before restart: fk_app status ---"
+          docker ps --filter name=fk_app --format '{{.Names}} {{.Status}}'
+          echo "--- docker restart fk_app ---"
+          docker restart fk_app
+          echo "--- fk_app exit=$? ---"
+          docker ps --filter name=fk_app --format '{{.Names}} {{.Status}}'
+          echo "--- docker restart fk_worker ---"
+          docker restart fk_worker
+          echo "--- fk_worker exit=$? ---"
+          echo "===== backend deployed $(date -u +%Y-%m-%dT%H:%M:%SZ) ====="
           REMOTE
 
       # ---------- FRONTEND ----------
