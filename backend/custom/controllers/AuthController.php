@@ -478,7 +478,9 @@ class AuthController extends Controller
 
         $idToken = (string) $resp->json('id_token');
         if ($idToken === '') {
-            return response()->json(['message' => 'Telegram не вернул id_token'], 502);
+            // 422 (не 502): Cloudflare перехватывает 5xx и подменяет тело на свою error-page,
+            // фронт не увидит наш message. Подробности — в журнале решений, VK OAuth.
+            return response()->json(['message' => 'Telegram не вернул id_token'], 422);
         }
 
         // 2. Валидируем id_token (JWT) по JWKS.
@@ -627,17 +629,21 @@ class AuthController extends Controller
                 ->header('Retry-After', '5');
         }
 
-        if (!$resp->ok()) {
+        // VK ID часто отдаёт HTTP 200 + JSON `{"error": "...", "error_description": "..."}`
+        // на невалидный code/device_id/verifier — это не успех. Проверяем явно error-поле
+        // плюс HTTP-статус.
+        if (!$resp->ok() || $resp->json('error')) {
             Log::warning('VK OAuth token error', ['status' => $resp->status(), 'body' => $resp->body()]);
             return response()->json(['message' => 'VK отверг код входа'], 422);
         }
 
         $idToken = (string) $resp->json('id_token');
         if ($idToken === '') {
-            // VK ID может вернуть пустой id_token если scope=openid не запрашивался.
-            // Фронт должен слать scope=email — оно автоматически даёт OIDC.
+            // Сюда дойдём только если VK ответил 200, без error, но без id_token.
+            // 422 (не 502): Cloudflare перехватывает 5xx и подменяет тело на свою error-page,
+            // фронт не увидит наш message. 422 проходит как есть.
             Log::warning('VK OAuth missing id_token', ['body' => $resp->body()]);
-            return response()->json(['message' => 'VK не вернул id_token'], 502);
+            return response()->json(['message' => 'VK не вернул id_token'], 422);
         }
 
         // 2. Валидируем id_token (JWT) по JWKS.
