@@ -6,6 +6,8 @@ created: 2026-04-23
 
 # FK.market — Hub
 
+> [!tip] AI-ассистент — стартуй с [[_AI_context]] (соглашения + статус + куда писать).
+
 **FK.market** — онлайн-магазин цифровых товаров на API FKwallet.
 Референсы: plati.market, duck.market, hornybox.ru.
 В v1 каталог от платформы, в v2 — мультивендорный маркетплейс.
