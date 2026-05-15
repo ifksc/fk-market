@@ -8,6 +8,7 @@ import { toggleTheme } from '@/components/ThemeProvider';
 import { useAuth } from '@/components/AuthProvider';
 import { AuthError, login, register } from '@/lib/auth';
 import { startTelegramOAuth } from '@/lib/telegram-oauth';
+import { startVkOAuth } from '@/lib/vk-oauth';
 
 export default function LoginPage() {
   return (
@@ -43,6 +44,18 @@ function LoginInner() {
       // дальше — редирект на Telegram, страница уходит
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось открыть Telegram');
+      setBusy(false);
+    }
+  };
+
+  const onVkClick = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await startVkOAuth();
+      // дальше — редирект на id.vk.com, страница уходит
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось открыть VK');
       setBusy(false);
     }
   };
@@ -127,8 +140,9 @@ function LoginInner() {
           <div className="grid grid-cols-2 gap-2 mb-3">
             <button
               type="button"
-              onClick={() => oauthClick('VK')}
-              className="h-11 rounded-xl text-white font-medium flex items-center justify-center gap-2"
+              onClick={onVkClick}
+              disabled={busy}
+              className="h-11 rounded-xl text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ background: '#0077FF' }}
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">

@@ -569,19 +569,196 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * POST /api/auth/oauth/vk/exchange
+     *
+     * VK ID OIDC + PKCE — структура та же, что и Telegram:
+     *   1. Фронт генерирует state и code_verifier, редиректит на id.vk.com/authorize.
+     *   2. VK возвращает ?code=...&state=...&device_id=... на /oauth/vk/callback.
+     *   3. Фронт зовёт этот endpoint с code+verifier+device_id+redirect_uri.
+     *   4. Мы меняем code на access_token + id_token (JWT) через id.vk.com/oauth2/auth,
+     *      проверяем JWT по JWKS, достаём user-data, создаём/находим User,
+     *      выдаём Sanctum-токен.
+     *
+     * Особенности VK по сравнению с Telegram:
+     *   - token endpoint: /oauth2/auth (а не /token);
+     *   - параметр device_id обязательный (VK PKCE-flow);
+     *   - в JWT iss = "https://id.vk.com".
+     *
+     * Body: { code, code_verifier, device_id, redirect_uri }
+     */
+    public function oauthVkExchange(Request $request): JsonResponse
+    {
+        $input = $request->validate([
+            'code' => ['required', 'string', 'max:1024'],
+            'code_verifier' => ['required', 'string', 'min:43', 'max:128'],
+            'device_id' => ['required', 'string', 'max:191'],
+            'redirect_uri' => ['required', 'url', 'max:255'],
+        ]);
+
+        $clientId = (string) config('services.vk.client_id');
+        $clientSecret = (string) config('services.vk.client_secret');
+        if ($clientId === '' || $clientSecret === '') {
+            return response()->json(['message' => 'VK OAuth не настроен'], 503);
+        }
+
+        // 1. Обмен code на токены (те же fast-fail настройки что у Telegram —
+        // сетевые маршруты до id.vk.com из Yandex Cloud могут флакать).
+        try {
+            $resp = Http::asForm()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->retry(2, 500, function ($e) {
+                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                }, throw: false)
+                ->post('https://id.vk.com/oauth2/auth', [
+                    'grant_type' => 'authorization_code',
+                    'code' => $input['code'],
+                    'code_verifier' => $input['code_verifier'],
+                    'device_id' => $input['device_id'],
+                    'redirect_uri' => $input['redirect_uri'],
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('VK OAuth token exchange failed', ['error' => $e->getMessage()]);
+            return response()
+                ->json(['message' => 'VK временно недоступен, попробуйте ещё раз'], 503)
+                ->header('Retry-After', '5');
+        }
+
+        if (!$resp->ok()) {
+            Log::warning('VK OAuth token error', ['status' => $resp->status(), 'body' => $resp->body()]);
+            return response()->json(['message' => 'VK отверг код входа'], 422);
+        }
+
+        $idToken = (string) $resp->json('id_token');
+        if ($idToken === '') {
+            // VK ID может вернуть пустой id_token если scope=openid не запрашивался.
+            // Фронт должен слать scope=email — оно автоматически даёт OIDC.
+            Log::warning('VK OAuth missing id_token', ['body' => $resp->body()]);
+            return response()->json(['message' => 'VK не вернул id_token'], 502);
+        }
+
+        // 2. Валидируем id_token (JWT) по JWKS.
+        try {
+            $jwks = $this->fetchVkJwks(forceRefresh: false);
+            $keys = JWK::parseKeySet($jwks);
+            try {
+                $payload = (array) JWT::decode($idToken, $keys);
+            } catch (\Firebase\JWT\UnexpectedValueException $e) {
+                Log::info('VK JWKS cache miss for current token, refreshing');
+                $jwks = $this->fetchVkJwks(forceRefresh: true);
+                $keys = JWK::parseKeySet($jwks);
+                $payload = (array) JWT::decode($idToken, $keys);
+            }
+        } catch (\Throwable $e) {
+            Log::warning('VK OAuth id_token verify failed', ['error' => $e->getMessage()]);
+            return response()->json(['message' => 'Подпись id_token не сошлась'], 422);
+        }
+
+        // 3. Проверка claim'ов: iss + aud
+        if (($payload['iss'] ?? null) !== 'https://id.vk.com') {
+            return response()->json(['message' => 'Неверный iss'], 422);
+        }
+        if ((string) ($payload['aud'] ?? '') !== (string) $clientId) {
+            return response()->json(['message' => 'Неверный aud'], 422);
+        }
+
+        // 4. Достаём user-data.
+        // sub — стабильный идентификатор пользователя в VK (равен user_id).
+        $providerUid = (string) ($payload['sub'] ?? $payload['user_id'] ?? '');
+        if ($providerUid === '') {
+            return response()->json(['message' => 'В id_token нет id пользователя'], 422);
+        }
+        $email = null;
+        if (!empty($payload['email']) && filter_var($payload['email'], FILTER_VALIDATE_EMAIL)) {
+            // VK email уже верифицирован у провайдера (юзер логинится по нему).
+            $email = mb_strtolower((string) $payload['email']);
+        }
+        $firstName = (string) ($payload['given_name'] ?? $payload['first_name'] ?? '');
+        $lastName = (string) ($payload['family_name'] ?? $payload['last_name'] ?? '');
+        $displayName = trim($firstName . ' ' . $lastName) ?: ('VK ' . $providerUid);
+        $photoUrl = isset($payload['picture']) ? (string) $payload['picture'] : null;
+
+        // 5. Найти/создать User. Если email с VK уже занят кем-то другим —
+        // привязываем VK-identity к существующему юзеру (объединение аккаунтов).
+        $user = DB::transaction(function () use ($providerUid, $displayName, $email, $payload) {
+            $identity = OauthIdentity::where('provider', 'vk')
+                ->where('provider_uid', $providerUid)
+                ->first();
+
+            if ($identity) {
+                $identity->update(['raw_profile' => $payload]);
+                return $identity->user;
+            }
+
+            // Сначала пробуем привязать к юзеру с тем же email.
+            $existing = $email ? User::where('email', $email)->first() : null;
+            if ($existing) {
+                OauthIdentity::create([
+                    'user_id' => $existing->id,
+                    'provider' => 'vk',
+                    'provider_uid' => $providerUid,
+                    'raw_profile' => $payload,
+                ]);
+                // VK подтвердил email на своей стороне — отметим у нас тоже,
+                // если ещё не отмечен.
+                if (!$existing->email_verified_at) {
+                    $existing->forceFill(['email_verified_at' => now()])->save();
+                }
+                return $existing;
+            }
+
+            $user = User::create([
+                'email' => $email,
+                'email_verified_at' => $email ? now() : null,
+                'name' => $displayName,
+                'role' => 'customer',
+            ]);
+
+            OauthIdentity::create([
+                'user_id' => $user->id,
+                'provider' => 'vk',
+                'provider_uid' => $providerUid,
+                'raw_profile' => $payload,
+            ]);
+            return $user;
+        });
+
+        if ($user->is_blocked) {
+            return response()->json(['message' => 'Аккаунт заблокирован'], 403);
+        }
+
+        $token = $this->issueToken($user, $request);
+
+        if ($user->isEmailVerified()) {
+            $this->linkGuestOrders($user);
+        }
+
+        return response()->json([
+            'data' => [
+                'token' => $token,
+                'user' => $this->serializeUser($user->refresh()),
+                'needs_email' => $user->email === null,
+                'photo_url' => $photoUrl,
+            ],
+        ]);
+    }
+
     // ---------- helpers ----------
 
     /**
-     * Получить JWKS Telegram'а (с кэшем в Redis на 1 час).
+     * Получить JWKS OAuth-провайдера (с кэшем в Redis на 1 час).
      *
-     * @param bool $forceRefresh инвалидировать кэш и перетянуть из сети.
+     * @param string $cacheKey   ключ в Redis-кэше (`telegram_jwks`, `vk_jwks`, …).
+     * @param string $url        JWKS endpoint провайдера.
+     * @param bool   $forceRefresh инвалидировать кэш и перетянуть из сети.
      * @return array{keys: array<int, array<string, mixed>>}
      * @throws \RuntimeException если JWKS недоступен и кэша нет.
      */
-    protected function fetchTelegramJwks(bool $forceRefresh = false): array
+    protected function fetchOauthJwks(string $cacheKey, string $url, bool $forceRefresh = false): array
     {
-        $cacheKey = 'telegram_jwks';
-
         if ($forceRefresh) {
             Cache::forget($cacheKey);
         } else {
@@ -595,7 +772,7 @@ class AuthController extends Controller
             ->retry(2, 500, function ($e) {
                 return $e instanceof \Illuminate\Http\Client\ConnectionException;
             }, throw: false)
-            ->get('https://oauth.telegram.org/.well-known/jwks.json');
+            ->get($url);
 
         if (!$resp || !$resp->ok()) {
             throw new \RuntimeException('JWKS HTTP ' . ($resp ? $resp->status() : 'no response'));
@@ -608,6 +785,26 @@ class AuthController extends Controller
 
         Cache::put($cacheKey, $data, 3600);
         return $data;
+    }
+
+    /** Хелпер обратной совместимости — Telegram JWKS. */
+    protected function fetchTelegramJwks(bool $forceRefresh = false): array
+    {
+        return $this->fetchOauthJwks(
+            'telegram_jwks',
+            'https://oauth.telegram.org/.well-known/jwks.json',
+            $forceRefresh,
+        );
+    }
+
+    /** JWKS VK ID — публичные ключи для верификации id_token. */
+    protected function fetchVkJwks(bool $forceRefresh = false): array
+    {
+        return $this->fetchOauthJwks(
+            'vk_jwks',
+            'https://id.vk.com/oauth2/public_keys',
+            $forceRefresh,
+        );
     }
 
     protected function issueToken(User $user, Request $request): string

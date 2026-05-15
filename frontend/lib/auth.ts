@@ -205,3 +205,20 @@ export async function oauthTelegramExchange(input: {
   setUserToken(r.data.token);
   return r.data;
 }
+
+// ---------- OAuth (VK ID OIDC) ----------
+export async function oauthVkExchange(input: {
+  code: string;
+  code_verifier: string;
+  device_id: string;
+  redirect_uri: string;
+}): Promise<{ token: string; user: AuthUser; needs_email: boolean; photo_url?: string | null }> {
+  const r = await authFetch<{
+    data: { token: string; user: AuthUser; needs_email: boolean; photo_url?: string | null };
+  }>('/auth/oauth/vk/exchange', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  setUserToken(r.data.token);
+  return r.data;
+}

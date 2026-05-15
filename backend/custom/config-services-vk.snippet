@@ -1,0 +1,18 @@
+// FK.market — VK ID OAuth (OIDC + PKCE).
+//
+// Это блок для авторизации через VK ID (id.vk.com), не для платежей.
+// Добавить эту секцию в src/config/services.php — внутри массива return [...].
+// services.php в репо не лежит (создаётся при setup), поэтому правка вручную.
+//
+// Креды:
+//   - client_id     — Application ID из кабинета id.vk.com/business
+//   - client_secret — «Защищённый ключ» там же
+// Положить в .env: VK_CLIENT_ID, VK_CLIENT_SECRET.
+//
+// Redirect URI в кабинете VK: https://fk.market/oauth/vk/callback
+// Запрашиваемые scope (на фронте): email vkid.personal_info
+
+    'vk' => [
+        'client_id'     => env('VK_CLIENT_ID'),
+        'client_secret' => env('VK_CLIENT_SECRET'),
+    ],
