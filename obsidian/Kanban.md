@@ -13,7 +13,7 @@ tags: [проект/FK.market, kanban]
 - [ ] Подать заявку на API Kinguin (ключи игр)
 - [x] Выбрать VPS для prod — сервер `194.87.118.214` (SSH 22)
 - [ ] Получить SSH-доступ к `194.87.118.214` и базовая настройка (Docker, nginx, TLS)
-- [ ] Зарегистрировать OAuth-приложения (VK ID, Яндекс ID, Telegram)
+- [ ] Зарегистрировать OAuth-приложения для VK ID и Яндекс ID (Telegram уже на проде)
 - [ ] Создать GitHub/GitLab репозиторий
 - [ ] Настроить email-рассылку (UniSender / Mailgun)
 - [ ] Завести Яндекс.Метрику
@@ -49,7 +49,9 @@ tags: [проект/FK.market, kanban]
 - [ ] Подключить к `/api/categories` и `/api/products`
 - [ ] Сделать страницу каталога с фильтрами
 - [ ] Сделать карточку товара с TanStack Query
-- [ ] Регистрация / логин (email + OAuth)
+- [x] Регистрация / логин email + Telegram OIDC
+- [x] OAuth VK ID (код готов, ждёт кредов из id.vk.com/business)
+- [ ] OAuth Яндекс ID
 - [ ] Корзина + оформление
 - [ ] Интеграция FKwallet sandbox
 - [ ] Автовыдача `stock`-ключей после оплаты
