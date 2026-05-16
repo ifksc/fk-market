@@ -9,10 +9,10 @@ use App\Models\ProductImage;
 use App\Models\Seller;
 use App\Models\PricingRule;
 use App\Services\PriceCalculator;
+use App\Services\ProductSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 
 class ProductController extends Controller
 {
@@ -70,7 +70,7 @@ class ProductController extends Controller
         $product = new Product();
         $this->fillFromRequest($product, $data);
         $product->seller_id = Seller::where('slug', 'platform')->value('id');
-        $product->slug = $data['slug'] ?? Str::slug($data['name']) . '-' . substr(Str::random(4), 0, 4);
+        $product->slug = !empty($data['slug']) ? $data['slug'] : ProductSlug::make($data['name']);
         $product->price_final = 0;
         $product->save();
 

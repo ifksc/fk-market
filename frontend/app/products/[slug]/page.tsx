@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { getCategories, getProduct } from '@/lib/api';
 import { ProductBuyBox } from '@/components/ProductBuyBox';
 import { ProductGallery } from '@/components/ProductGallery';
@@ -70,6 +70,12 @@ export default async function ProductPage({
     [product, allCategories] = await Promise.all([getProduct(slug), getCategories()]);
   } catch {
     notFound();
+  }
+
+  // Запрос пришёл по старому slug (до перехода на читаемые) — 301 на новый URL.
+  // permanentRedirect бросает исключение, поэтому вызываем вне try/catch.
+  if (product.slug !== slug) {
+    permanentRedirect(`/products/${product.slug}`);
   }
 
   const grad = CATEGORY_GRADIENTS[product.category?.slug ?? ''] ?? 'from-slate-500 to-slate-700';

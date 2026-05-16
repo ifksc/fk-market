@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model {
     protected $fillable = [
-        'seller_id','category_id','slug','name','short_description','description',
+        'seller_id','category_id','slug','legacy_slug','name','short_description','description',
         'price_base','markup_pct','price_final','price_old','currency',
         'fulfillment_mode','fulfillment_fallback','provider_id','provider_external_id',
         'required_params','status','published_at','stock_available','variants_count','auto_hidden_at',
@@ -29,6 +29,24 @@ class Product extends Model {
     public function faqItems(): BelongsToMany { return $this->belongsToMany(FaqItem::class, 'faq_item_product'); }
 
     public function getRouteKeyName(): string { return 'slug'; }
+
+    /**
+     * Резолвинг товара из URL. Для привязки по slug ищем также по legacy_slug —
+     * старые ссылки (до перехода на читаемые slug) продолжают находить товар.
+     * Привязка по id (админка) работает как обычно.
+     */
+    public function resolveRouteBinding($value, $field = null)
+    {
+        $field = $field ?: $this->getRouteKeyName();
+
+        if ($field === 'slug') {
+            return $this->where('slug', $value)
+                ->orWhere('legacy_slug', $value)
+                ->first();
+        }
+
+        return $this->where($field, $value)->first();
+    }
 
     public function scopeActive(Builder $q): Builder { return $q->where('status', 'active'); }
     public function scopeSearch(Builder $q, string $term): Builder
