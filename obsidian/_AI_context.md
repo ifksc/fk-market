@@ -113,8 +113,8 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
     + stale-JWKS-кэш. Egress-прокси — план Б, в проработке (см. журнал 2026-05-16).
   - **VK ID** ✓ на проде с 2026-05-16. Открытый баг: иногда «Несовпадение state»
     при логине — в диагностике (см. [[Bugs]]).
-  - **Яндекс ID** — код готов (backend+frontend), на проде не запущен: ждёт
-    регистрации OAuth-приложения в oauth.yandex.ru + кредов (см. [[Журнал решений#2026-05-16]]).
+  - **Яндекс ID** ✓ на проде с 2026-05-16. Smoke-тест пройден, ждёт финальной
+    проверки реальным входом (см. [[Журнал решений#2026-05-16]]).
 - **Auth endpoints:** `POST /api/auth/oauth/{provider}/exchange` (PKCE-flow).
   - Telegram: exchange code → id_token, верификация по JWKS (`telegram_jwks` в Redis на час).
   - VK: exchange code → access_token → `POST id.vk.com/oauth2/user_info` за профилем
