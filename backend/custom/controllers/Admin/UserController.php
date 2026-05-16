@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -11,8 +12,9 @@ use Illuminate\Http\Request;
 /**
  * Админка: пользователи и их покупки.
  *
- * GET  /api/admin/users           — список (фильтры: q, role, sort)
- * GET  /api/admin/users/{id}      — карточка + заказы
+ * GET   /api/admin/users           — список (фильтры: q, role, sort)
+ * GET   /api/admin/users/{id}      — карточка + заказы
+ * PATCH /api/admin/users/{id}      — блокировка / смена роли
  */
 class UserController extends Controller
 {
@@ -97,6 +99,57 @@ class UserController extends Controller
                 ])->values(),
             ]),
         ]);
+    }
+
+    /**
+     * PATCH /api/admin/users/{id} — блокировка и/или смена роли.
+     * Защита: нельзя заблокировать себя или снять с себя роль админа.
+     * Каждое изменение пишется в audit_logs.
+     */
+    public function update(Request $request, int $id): JsonResponse
+    {
+        $user = User::findOrFail($id);
+        $data = $request->validate([
+            'is_blocked' => ['sometimes', 'boolean'],
+            'role' => ['sometimes', 'in:customer,admin,seller,moderator'],
+        ]);
+
+        $isSelf = $user->id === $request->user()->id;
+        if ($isSelf && array_key_exists('is_blocked', $data) && $data['is_blocked']) {
+            return response()->json(['message' => 'Нельзя заблокировать самого себя'], 422);
+        }
+        if ($isSelf && array_key_exists('role', $data) && $data['role'] !== 'admin') {
+            return response()->json(['message' => 'Нельзя снять с себя роль администратора'], 422);
+        }
+
+        $changes = [];
+        if (array_key_exists('is_blocked', $data) && (bool) $user->is_blocked !== (bool) $data['is_blocked']) {
+            $changes['is_blocked'] = ['from' => (bool) $user->is_blocked, 'to' => (bool) $data['is_blocked']];
+        }
+        if (array_key_exists('role', $data) && $user->role !== $data['role']) {
+            $changes['role'] = ['from' => $user->role, 'to' => $data['role']];
+        }
+
+        if (!empty($changes)) {
+            $user->fill($data)->save();
+
+            AuditLog::create([
+                'user_id' => $request->user()->id,
+                'action' => 'user.update',
+                'subject_type' => 'User',
+                'subject_id' => $user->id,
+                'payload' => $changes,
+                'ip' => $request->ip(),
+                'user_agent' => mb_substr((string) $request->userAgent(), 0, 500),
+            ]);
+
+            // Заблокированному юзеру — отзываем все токены (выкидываем сессии).
+            if (isset($changes['is_blocked']) && $changes['is_blocked']['to'] === true) {
+                $user->tokens()->delete();
+            }
+        }
+
+        return response()->json(['data' => $this->serializeList($user->refresh())]);
     }
 
     protected function serializeList(User $u): array

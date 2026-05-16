@@ -1029,3 +1029,15 @@ export async function unapproveAdminReview(id: number): Promise<void> {
 export async function deleteAdminReview(id: number): Promise<void> {
   await adminFetch(`/admin/reviews/${id}`, { method: 'DELETE' });
 }
+
+// ---------- Управление пользователем ----------
+export async function updateAdminUser(
+  id: number,
+  data: { is_blocked?: boolean; role?: string },
+): Promise<AdminUserListItem> {
+  const r = await adminFetch<{ data: AdminUserListItem }>(`/admin/users/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
