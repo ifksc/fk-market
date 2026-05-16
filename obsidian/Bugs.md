@@ -15,20 +15,7 @@
 
 ## 🔥 Открытые
 
-- [ ] **VK-логин: «Несовпадение state — возможна попытка CSRF»** — фронт, `app/oauth/vk/callback/page.tsx`
-  - Воспроизведение: клик «Войти через VK» → id.vk.com → возврат на callback → ошибка. До бэкенда запрос не доходит, проверка чисто фронтовая (`session.state !== state`).
-  - Подозрение: ситуативное, не регрессия кода — VK-логин ранее работал (после `ac7db87`), фронт callback с тех пор не менялся. Вероятно повторный клик «Войти через VK» перезаписал `state` в sessionStorage, либо старая вкладка / кнопка «назад».
-  - Следующий шаг: чистый тест в одной свежей вкладке. Если повторяется — выкатить debug-версию callback'а (вывод обоих `state` в сообщение + `console.log`).
-  - Дата: 2026-05-16
-
 - [ ] **Telegram egress-прокси** — не баг, а инфраструктурная задача в работе. См. [[Журнал решений#2026-05-16]]. Статус: ТЗ передано, ждём проверку сервера-кандидата `37.220.85.24`.
-
-- [ ] **`fk_frontend` контейнер в статусе `unhealthy`** — прод, замечено 2026-05-16
-  - Воспроизведение: `docker ps` показывает `fk_frontend ... (unhealthy)`, healthcheck падает с exit 1 (5 проб подряд).
-  - При этом фронт **рабочий**: `curl localhost:3000/login` → 200, в логах `✓ Ready`. То есть приложение живо, ломается именно healthcheck-команда.
-  - Подозрение: healthcheck в Dockerfile/compose дёргает несуществующий путь или использует тулзу (`curl`/`wget`), которой нет в standalone-образе Next.js. Не связано с OAuth-задачами — было до правок Яндекса.
-  - Следующий шаг: посмотреть `HEALTHCHECK` в `frontend/Dockerfile` и `docker inspect fk_frontend`.
-  - Дата: 2026-05-16
 
 ---
 
@@ -36,6 +23,9 @@
 
 <details>
 <summary>История фиксов</summary>
+
+- 2026-05-16 — OAuth-логин падал с «Несовпадение state — возможна попытка CSRF» (VK, латентно — Telegram/Яндекс). Корень: session хранилась в `sessionStorage` под одним фиксированным ключом — повторный старт входа (двойной клик / кнопка «назад» через историю браузера) перезаписывал `state`, и callback завершённой ранее попытки видел чужой. Фикс: ключ хранения включает `state` (`fk-vk-oauth:<state>`) — попытки уживаются, callback находит свою; поиск по state сам стал CSRF-проверкой. Применено к 3 провайдерам.
+- 2026-05-16 — `fk_frontend` вечно `unhealthy` при рабочем фронте. Корень: healthcheck `wget ... http://localhost:3000/`, а Next.js (`server.js`) слушает только IPv4 (`HOSTNAME=0.0.0.0`); BusyBox wget резолвит `localhost` в IPv6 `::1` → «Connection refused». Фикс: `localhost` → `127.0.0.1` в `frontend/docker-compose.yml`.
 
 - 2026-05-15 — Telegram OAuth `/auth/oauth/telegram/exchange` отдавал 502: маршрут Yandex Cloud → Telegram CDN периодически роняет TCP-handshake (2 из 5), CLI curl выживает через happy-eyeballs, PHP-libcurl — нет. Фикс: `connectTimeout(5) + timeout(15) + retry(2, 500ms)` на `ConnectionException`, 502→503 + `Retry-After`. См. журнал.
 - 2026-05-15 — После фикса token exchange — та же сетевая нестабильность на JWKS endpoint, `5002ms` connect timeout × 3 retry = `id_token verify failed`. Фикс: кэш JWKS в Redis на 1 час через `AuthController::fetchTelegramJwks`, force-refresh при `JWT::UnexpectedValueException`.
