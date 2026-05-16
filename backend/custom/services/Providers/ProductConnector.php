@@ -8,7 +8,7 @@ use App\Models\ProductImage;
 use App\Models\ProviderProduct;
 use App\Models\Seller;
 use App\Services\PriceCalculator;
-use Illuminate\Support\Str;
+use App\Services\ProductSlug;
 
 /**
  * Создаёт Product из ProviderProduct и связывает их.
@@ -123,7 +123,7 @@ class ProductConnector
         $product = Product::create([
             'seller_id' => $this->platformSeller->id,
             'category_id' => $categoryId,
-            'slug' => $this->makeSlug($pp->external_id),
+            'slug' => ProductSlug::make($name),
             'name' => $name,
             'short_description' => $shortDesc,
             'description' => $description,
@@ -159,14 +159,4 @@ class ProductConnector
         return ['status' => 'connected', 'product' => $product];
     }
 
-    /**
-     * Уникальный slug. Префикс `fkwallet-` + external_id + 4 случайных символа,
-     * чтобы случайные коллизии между поставщиками (или повторными подключениями)
-     * не ломали unique-индекс.
-     */
-    protected function makeSlug(string $externalId): string
-    {
-        $clean = preg_replace('/[^a-z0-9-]/i', '', $externalId);
-        return 'fkwallet-' . $clean . '-' . Str::lower(Str::random(4));
-    }
 }

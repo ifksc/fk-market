@@ -9,8 +9,8 @@ use App\Models\Provider;
 use App\Models\ProviderProduct;
 use App\Models\Seller;
 use App\Services\PriceCalculator;
+use App\Services\ProductSlug;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 /**
  * Создаёт Product'ы по принципу «1 leaf-категория FK = 1 Product».
@@ -181,7 +181,7 @@ class ProductGrouper
         $description = $this->normalizeText($rawDesc) ?: null;
 
         // Создаём Product (price_final = 0 пока, посчитаем после)
-        $slug = 'fkwallet-cat-' . $cat->provider_external_id . '-' . Str::lower(Str::random(4));
+        $slug = ProductSlug::make($cat->name);
         $product = Product::create([
             'seller_id' => $this->platformSeller->id,
             'category_id' => $cat->id,
