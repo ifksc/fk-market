@@ -35,13 +35,6 @@ function buildHref(
   return qs ? `${pathname}?${qs}` : pathname;
 }
 
-const MODES: Array<{ value: string; label: string; hint?: string }> = [
-  { value: '', label: 'Любой' },
-  { value: 'stock', label: 'Из склада', hint: 'мгновенно' },
-  { value: 'api', label: 'Через API', hint: 'авто' },
-  { value: 'manual', label: 'Ручная выдача' },
-];
-
 const RATINGS: Array<{ value: string; label: string }> = [
   { value: '', label: 'Любой' },
   { value: '4.5', label: '4.5+ ★' },
@@ -96,12 +89,10 @@ export function CatalogFilters({ params }: { params: CatalogParams }) {
   const [open, setOpen] = useState(false);
   const [minPrice, setMinPrice] = useState(params.min_price ?? '');
   const [maxPrice, setMaxPrice] = useState(params.max_price ?? '');
-  const [mode, setMode] = useState(params.mode ?? '');
   const [minRating, setMinRating] = useState(params.min_rating ?? '');
 
   const activeCount =
     (params.min_price || params.max_price ? 1 : 0) +
-    (params.mode ? 1 : 0) +
     (params.min_rating ? 1 : 0);
 
   const apply = () => {
@@ -109,7 +100,6 @@ export function CatalogFilters({ params }: { params: CatalogParams }) {
       buildHref(pathname, params, {
         min_price: minPrice,
         max_price: maxPrice,
-        mode,
         min_rating: minRating,
         page: undefined,
       }),
@@ -119,13 +109,11 @@ export function CatalogFilters({ params }: { params: CatalogParams }) {
   const reset = () => {
     setMinPrice('');
     setMaxPrice('');
-    setMode('');
     setMinRating('');
     router.push(
       buildHref(pathname, params, {
         min_price: undefined,
         max_price: undefined,
-        mode: undefined,
         min_rating: undefined,
         page: undefined,
       }),
@@ -173,26 +161,6 @@ export function CatalogFilters({ params }: { params: CatalogParams }) {
               onKeyDown={(e) => e.key === 'Enter' && apply()}
               className="w-full h-9 px-3 rounded-lg border border-gray-200 dark:border-slate-800 bg-transparent text-sm"
             />
-          </div>
-        </div>
-
-        {/* Способ выдачи */}
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-5">
-          <div className="font-semibold mb-3">Способ выдачи</div>
-          <div className="space-y-2 text-sm">
-            {MODES.map((m) => (
-              <label key={m.value || 'any'} className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="mode"
-                  className="accent-brand-500"
-                  checked={mode === m.value}
-                  onChange={() => setMode(m.value)}
-                />
-                {m.label}
-                {m.hint && <span className="text-gray-400 ml-auto text-xs">{m.hint}</span>}
-              </label>
-            ))}
           </div>
         </div>
 

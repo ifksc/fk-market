@@ -10,7 +10,6 @@ type SearchParams = {
   page?: string;
   min_price?: string;
   max_price?: string;
-  mode?: string;
   min_rating?: string;
 };
 
@@ -32,7 +31,6 @@ export default async function CatalogPage({
       sort: currentSort as ProductsQuery['sort'],
       min_price: params.min_price ? Number(params.min_price) : undefined,
       max_price: params.max_price ? Number(params.max_price) : undefined,
-      mode: params.mode as ProductsQuery['mode'],
       min_rating: params.min_rating ? Number(params.min_rating) : undefined,
       page: currentPage,
       per_page: 24,
@@ -77,7 +75,7 @@ export default async function CatalogPage({
 
   // key для CatalogFilters — чтобы локальное состояние компонента
   // пере-инициализировалось, если фильтры поменялись извне (кнопка «назад» и т.п.)
-  const filterKey = `${params.min_price ?? ''}|${params.max_price ?? ''}|${params.mode ?? ''}|${params.min_rating ?? ''}`;
+  const filterKey = `${params.min_price ?? ''}|${params.max_price ?? ''}|${params.min_rating ?? ''}`;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
