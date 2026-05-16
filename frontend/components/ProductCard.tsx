@@ -32,7 +32,7 @@ export function ProductCard({ p }: { p: Product }) {
             src={p.image}
             alt={p.name}
             loading="lazy"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         ) : (
           <div className="text-white/80 text-2xl font-bold tracking-wide">
