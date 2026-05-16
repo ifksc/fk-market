@@ -37,9 +37,15 @@ export async function generateMetadata({
       const cats = await getCategories();
       const cat = cats.find((c) => c.slug === params.category);
       if (cat) {
+        // Если у категории заполнено описание — берём его (обрезав) в meta,
+        // иначе генерим типовое.
+        const ownDesc = (cat.description ?? '').replace(/\s+/g, ' ').trim();
+        const description = ownDesc
+          ? (ownDesc.length > 160 ? `${ownDesc.slice(0, 157).trimEnd()}…` : ownDesc)
+          : `${cat.name} в каталоге FK.market: цифровые товары с автоматической выдачей сразу после оплаты.`;
         return {
           title: `${cat.name} — купить с моментальной выдачей`,
-          description: `${cat.name} в каталоге FK.market: цифровые товары с автоматической выдачей сразу после оплаты.`,
+          description,
           alternates: { canonical: `/catalog?category=${encodeURIComponent(cat.slug)}` },
         };
       }
@@ -153,6 +159,13 @@ export default async function CatalogPage({
         </div>
         <SortSelect params={params} current={currentSort} />
       </div>
+
+      {/* SEO-описание категории — заполняется в админке */}
+      {activeCat?.description && (
+        <p className="text-sm text-gray-600 dark:text-slate-300 mb-6 max-w-3xl whitespace-pre-line">
+          {activeCat.description}
+        </p>
+      )}
 
       {/* Чипсы категорий: контекстные (родительская группа или дети текущей) */}
       <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 mb-6">
