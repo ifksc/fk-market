@@ -13,7 +13,7 @@ class ProductController extends Controller
 {
     /**
      * GET /api/products — листинг каталога с фильтрами/сортировкой/пагинацией.
-     * Query: ?category=ai&q=claude&min_price=&max_price=&sort=popular&page=1
+     * Query: ?category=ai&q=claude&min_price=&max_price=&mode=&min_rating=&sort=popular&page=1
      */
     public function index(Request $request): JsonResponse
     {
@@ -34,6 +34,9 @@ class ProductController extends Controller
         if ($max = $request->float('max_price')) $q->where('price_final', '<=', $max);
         if ($mode = $request->string('mode')->toString()) {
             $q->where('fulfillment_mode', $mode);
+        }
+        if ($minRating = $request->float('min_rating')) {
+            $q->where('rating', '>=', $minRating);
         }
 
         match ($request->string('sort')->toString() ?: 'popular') {

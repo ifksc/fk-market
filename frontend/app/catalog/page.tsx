@@ -1,20 +1,17 @@
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
+import { CatalogFilters, SortSelect } from '@/components/CatalogFilters';
 import { getCategories, getProducts, type ProductsQuery } from '@/lib/api';
-
-const SORT_LABELS: Record<NonNullable<ProductsQuery['sort']>, string> = {
-  popular: 'По популярности',
-  price_asc: 'По цене ↑',
-  price_desc: 'По цене ↓',
-  new: 'Сначала новые',
-  rating: 'По рейтингу',
-};
 
 type SearchParams = {
   category?: string;
   q?: string;
-  sort?: ProductsQuery['sort'];
+  sort?: string;
   page?: string;
+  min_price?: string;
+  max_price?: string;
+  mode?: string;
+  min_rating?: string;
 };
 
 export default async function CatalogPage({
@@ -32,7 +29,11 @@ export default async function CatalogPage({
     getProducts({
       category: currentCategory,
       q: params.q,
-      sort: currentSort,
+      sort: currentSort as ProductsQuery['sort'],
+      min_price: params.min_price ? Number(params.min_price) : undefined,
+      max_price: params.max_price ? Number(params.max_price) : undefined,
+      mode: params.mode as ProductsQuery['mode'],
+      min_rating: params.min_rating ? Number(params.min_rating) : undefined,
       page: currentPage,
       per_page: 24,
     }),
@@ -74,6 +75,10 @@ export default async function CatalogPage({
     return `/catalog${qs ? `?${qs}` : ''}`;
   };
 
+  // key для CatalogFilters — чтобы локальное состояние компонента
+  // пере-инициализировалось, если фильтры поменялись извне (кнопка «назад» и т.п.)
+  const filterKey = `${params.min_price ?? ''}|${params.max_price ?? ''}|${params.mode ?? ''}|${params.min_rating ?? ''}`;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Хлебные крошки */}
@@ -105,31 +110,7 @@ export default async function CatalogPage({
             {params.q ? ` · поиск «${params.q}»` : ''}
           </p>
         </div>
-
-        <form className="flex items-center gap-2 text-sm">
-          <input type="hidden" name="category" value={currentCategory ?? ''} />
-          {params.q && <input type="hidden" name="q" value={params.q} />}
-          <label className="text-gray-500">Сортировка:</label>
-          <select
-            name="sort"
-            defaultValue={currentSort}
-            // отправляем форму при изменении (без JS — через стандартный submit на change через нативный hack: <select onchange="this.form.submit()">)
-            // в server component нельзя инлайн-onchange, поэтому — ниже отдельный client component, либо просто <button>
-            className="h-10 px-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900"
-          >
-            {Object.entries(SORT_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <button
-            type="submit"
-            className="h-10 px-4 rounded-xl border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800"
-          >
-            Применить
-          </button>
-        </form>
+        <SortSelect params={params} current={currentSort} />
       </div>
 
       {/* Чипсы категорий: контекстные (родительская группа или дети текущей) */}
@@ -170,61 +151,68 @@ export default async function CatalogPage({
         ))}
       </div>
 
-      {/* Сетка товаров */}
-      {productsPage.data.length === 0 ? (
-        <div className="text-center py-20 text-gray-500">
-          По вашему запросу ничего не найдено.{' '}
-          <Link href="/catalog" className="text-brand-600 hover:underline">
-            Сбросить фильтры
-          </Link>
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-          {productsPage.data.map((p) => (
-            <ProductCard key={p.id} p={p} />
-          ))}
-        </div>
-      )}
+      {/* Двухколоночный layout: фильтры + сетка */}
+      <div className="grid lg:grid-cols-[260px_1fr] gap-6">
+        <CatalogFilters key={filterKey} params={params} />
 
-      {/* Пагинация */}
-      {productsPage.meta.last_page > 1 && (
-        <div className="mt-8 flex items-center justify-between">
-          <div className="text-sm text-gray-500">
-            Страница {productsPage.meta.current_page} из {productsPage.meta.last_page}
-          </div>
-          <div className="flex items-center gap-1">
-            {productsPage.meta.current_page > 1 && (
-              <Link
-                href={buildUrl({ page: String(productsPage.meta.current_page - 1) })}
-                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-              >
-                ‹
+        <div>
+          {/* Сетка товаров */}
+          {productsPage.data.length === 0 ? (
+            <div className="text-center py-20 text-gray-500">
+              По вашему запросу ничего не найдено.{' '}
+              <Link href="/catalog" className="text-brand-600 hover:underline">
+                Сбросить фильтры
               </Link>
-            )}
-            {Array.from({ length: productsPage.meta.last_page }, (_, i) => i + 1).map((page) => (
-              <Link
-                key={page}
-                href={buildUrl({ page: page === 1 ? undefined : String(page) })}
-                className={`w-9 h-9 flex items-center justify-center rounded-lg ${
-                  page === productsPage.meta.current_page
-                    ? 'fk-grad-btn'
-                    : 'border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900'
-                }`}
-              >
-                {page}
-              </Link>
-            ))}
-            {productsPage.meta.current_page < productsPage.meta.last_page && (
-              <Link
-                href={buildUrl({ page: String(productsPage.meta.current_page + 1) })}
-                className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-              >
-                ›
-              </Link>
-            )}
-          </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {productsPage.data.map((p) => (
+                <ProductCard key={p.id} p={p} />
+              ))}
+            </div>
+          )}
+
+          {/* Пагинация */}
+          {productsPage.meta.last_page > 1 && (
+            <div className="mt-8 flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                Страница {productsPage.meta.current_page} из {productsPage.meta.last_page}
+              </div>
+              <div className="flex items-center gap-1">
+                {productsPage.meta.current_page > 1 && (
+                  <Link
+                    href={buildUrl({ page: String(productsPage.meta.current_page - 1) })}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                  >
+                    ‹
+                  </Link>
+                )}
+                {Array.from({ length: productsPage.meta.last_page }, (_, i) => i + 1).map((page) => (
+                  <Link
+                    key={page}
+                    href={buildUrl({ page: page === 1 ? undefined : String(page) })}
+                    className={`w-9 h-9 flex items-center justify-center rounded-lg ${
+                      page === productsPage.meta.current_page
+                        ? 'fk-grad-btn'
+                        : 'border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900'
+                    }`}
+                  >
+                    {page}
+                  </Link>
+                ))}
+                {productsPage.meta.current_page < productsPage.meta.last_page && (
+                  <Link
+                    href={buildUrl({ page: String(productsPage.meta.current_page + 1) })}
+                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
+                  >
+                    ›
+                  </Link>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
