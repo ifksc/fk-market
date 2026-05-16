@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\Admin\OrderController as AdminOrder;
 use App\Http\Controllers\Api\Admin\PaymentMethodController as AdminPaymentMethod;
 use App\Http\Controllers\Api\Admin\PricingController as AdminPricing;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProduct;
+use App\Http\Controllers\Api\Admin\PromocodeController as AdminPromocode;
 use App\Http\Controllers\Api\Admin\ProviderCatalogController as AdminProviderCatalog;
 use App\Http\Controllers\Api\Admin\ProviderController as AdminProvider;
 use App\Http\Controllers\Api\Admin\QueueController as AdminQueue;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\PromocodeController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -41,6 +43,8 @@ Route::get('/steam-validate', \App\Http\Controllers\Api\SteamValidateController:
 Route::get('/payment-methods', [\App\Http\Controllers\Api\PaymentMethodController::class, 'index']);
 
 Route::post('/checkout', CheckoutController::class);
+// Превью скидки по промокоду на чекауте (до создания заказа)
+Route::post('/promocode/check', [PromocodeController::class, 'check']);
 // Webhook от Freekassa. Старый путь /fkwallet/ оставляем для обратной совместимости.
 // Принимаем И POST, И GET — FK в кабинете может быть настроен любым способом.
 // Если пришёл GET без данных — это health-check, контроллер сам разрулит.
@@ -143,6 +147,12 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
 
     Route::get('/settings', [AdminSetting::class, 'index']);
     Route::put('/settings', [AdminSetting::class, 'update']);
+
+    Route::get('/promocodes', [AdminPromocode::class, 'index']);
+    Route::post('/promocodes', [AdminPromocode::class, 'store']);
+    Route::get('/promocodes/{promocode}', [AdminPromocode::class, 'show']);
+    Route::put('/promocodes/{promocode}', [AdminPromocode::class, 'update']);
+    Route::delete('/promocodes/{promocode}', [AdminPromocode::class, 'destroy']);
 
     // Пользователи
     Route::get('/users', [AdminUser::class, 'index']);

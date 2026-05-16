@@ -901,3 +901,72 @@ export async function connectAllProviderProductsBatch(
   );
   return r.data;
 }
+
+// ---------- Промокоды ----------
+export type AdminPromocode = {
+  id: number;
+  code: string;
+  type: 'percent' | 'fixed';
+  value: number;
+  min_total: number | null;
+  max_discount: number | null;
+  limit_total: number | null;
+  limit_per_user: number | null;
+  used_count: number;
+  category_ids: number[] | null;
+  product_ids: number[] | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  is_active: boolean;
+  is_valid: boolean;
+  created_at: string | null;
+};
+
+export type AdminPromocodeInput = Partial<{
+  code: string;
+  type: 'percent' | 'fixed';
+  value: number;
+  min_total: number | null;
+  max_discount: number | null;
+  limit_total: number | null;
+  limit_per_user: number | null;
+  valid_from: string | null;
+  valid_until: string | null;
+  is_active: boolean;
+}>;
+
+export async function listAdminPromocodes(
+  query: { q?: string; page?: number; per_page?: number } = {},
+): Promise<Paginated<AdminPromocode>> {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return adminFetch<Paginated<AdminPromocode>>(`/admin/promocodes${qs ? `?${qs}` : ''}`);
+}
+
+export async function getAdminPromocode(id: number): Promise<AdminPromocode> {
+  const r = await adminFetch<{ data: AdminPromocode }>(`/admin/promocodes/${id}`);
+  return r.data;
+}
+
+export async function createAdminPromocode(data: AdminPromocodeInput): Promise<AdminPromocode> {
+  const r = await adminFetch<{ data: AdminPromocode }>('/admin/promocodes', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
+
+export async function updateAdminPromocode(id: number, data: AdminPromocodeInput): Promise<AdminPromocode> {
+  const r = await adminFetch<{ data: AdminPromocode }>(`/admin/promocodes/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
+
+export async function deleteAdminPromocode(id: number): Promise<void> {
+  await adminFetch(`/admin/promocodes/${id}`, { method: 'DELETE' });
+}

@@ -9,6 +9,7 @@ use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Provider;
 use App\Services\FreekassaGateway;
+use App\Services\PromocodeService;
 use App\Services\Providers\FkwalletProductsGateway;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -23,7 +24,7 @@ use Illuminate\Support\Str;
  */
 class CheckoutController extends Controller
 {
-    public function __invoke(Request $request, FreekassaGateway $fk): JsonResponse
+    public function __invoke(Request $request, FreekassaGateway $fk, PromocodeService $promocodes): JsonResponse
     {
         $payload = $request->validate([
             'email' => ['required', 'email', 'max:190'],
@@ -33,6 +34,7 @@ class CheckoutController extends Controller
             'items.*.qty' => ['required', 'integer', 'min:1', 'max:100'],
             'items.*.params' => ['nullable', 'array'],
             'payment_method' => ['nullable', 'string', 'max:40'],
+            'promocode' => ['nullable', 'string', 'max:60'],
         ]);
 
         // Получаем актуальные товары из БД
@@ -94,10 +96,26 @@ class CheckoutController extends Controller
             $subtotal += $price * $qty;
         }
 
+        // Промокод (опционально). Скидку считаем server-side по реальным ценам.
+        $discount = 0.0;
+        $promocode = null;
+        if (!empty($payload['promocode'])) {
+            $lines = array_map(
+                fn ($i) => ['product' => $i['product'], 'qty' => $i['qty'], 'total' => $i['total']],
+                $resolvedItems,
+            );
+            $promoResult = $promocodes->evaluate($payload['promocode'], $lines, $request->user()?->id);
+            if (!$promoResult['ok']) {
+                return response()->json(['error' => $promoResult['message'] ?? 'Промокод недействителен'], 422);
+            }
+            $discount = $promoResult['discount'];
+            $promocode = $promoResult['promocode'];
+        }
+
         $publicNumber = self::generatePublicNumber();
 
         // Атомарное создание заказа
-        $order = DB::transaction(function () use ($payload, $resolvedItems, $subtotal, $publicNumber, $request) {
+        $order = DB::transaction(function () use ($payload, $resolvedItems, $subtotal, $discount, $promocode, $publicNumber, $request) {
             $order = Order::create([
                 'public_number' => $publicNumber,
                 'user_id' => $request->user()?->id,
@@ -105,8 +123,9 @@ class CheckoutController extends Controller
                 'phone' => $payload['phone'] ?? null,
                 'currency' => 'RUB',
                 'subtotal' => $subtotal,
-                'discount' => 0,
-                'total' => $subtotal,
+                'discount' => $discount,
+                'promocode_id' => $promocode?->id,
+                'total' => round($subtotal - $discount, 2),
                 'status' => 'pending',
                 'ip' => $request->ip(),
                 'user_agent' => $request->userAgent(),
@@ -124,6 +143,11 @@ class CheckoutController extends Controller
                     'params' => $item['params'],
                     'fulfillment_status' => 'pending',
                 ]);
+            }
+
+            // Счётчик использований промокода — внутри транзакции.
+            if ($promocode) {
+                $promocode->increment('used_count');
             }
 
             return $order;

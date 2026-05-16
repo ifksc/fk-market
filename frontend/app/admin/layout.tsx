@@ -15,6 +15,7 @@ import {
   Settings,
   ShieldCheck,
   Tag,
+  BadgePercent,
   Users,
 } from 'lucide-react';
 import { LogoMark } from '@/components/Logo';
@@ -37,6 +38,7 @@ const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ clas
   { href: '/admin/queue', label: 'Очередь выдачи', icon: ShieldCheck },
   { href: '/admin/providers', label: 'Поставщики', icon: Plug },
   { href: '/admin/pricing', label: 'Наценки', icon: Tag },
+  { href: '/admin/promocodes', label: 'Промокоды', icon: BadgePercent },
   { href: '/admin/payment-methods', label: 'Способы оплаты', icon: CreditCard },
   { href: '/admin/settings', label: 'Настройки', icon: Settings },
 ];

@@ -85,12 +85,34 @@ export type CheckoutPayload = {
   phone?: string;
   // Произвольный code из таблицы payment_methods (был enum, но методы теперь конфигурируются в админке)
   payment_method?: string;
+  // Промокод (опционально) — скидку считает и валидирует бэкенд
+  promocode?: string;
   items: Array<{
     product_id: number;
     qty: number;
     params?: Record<string, string>;
   }>;
 };
+
+// ---------- Промокод ----------
+export type PromocodeCheck = {
+  valid: boolean;
+  discount: number;
+  total: number;
+  message: string | null;
+};
+
+export async function checkPromocode(input: {
+  code: string;
+  items: Array<{ product_id: number; qty: number; params?: Record<string, string> }>;
+}): Promise<PromocodeCheck> {
+  const r = await apiFetch<ApiResponse<PromocodeCheck>>('/promocode/check', {
+    method: 'POST',
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  } as RequestInit);
+  return r.data;
+}
 
 export type CheckoutResponse = {
   order_id: number;

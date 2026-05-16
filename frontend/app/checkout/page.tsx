@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Bitcoin, CreditCard, QrCode, Wallet } from 'lucide-react';
 import { useCart } from '@/lib/cart';
-import { createOrder, getPaymentMethods, type PaymentMethodPublic } from '@/lib/api';
+import { checkPromocode, createOrder, getPaymentMethods, type PaymentMethodPublic } from '@/lib/api';
 
 const LAST_EMAIL_KEY = 'fk-last-email';
 
@@ -29,6 +29,12 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Промокод
+  const [promoInput, setPromoInput] = useState('');
+  const [appliedPromo, setAppliedPromo] = useState<{ code: string; discount: number } | null>(null);
+  const [promoError, setPromoError] = useState<string | null>(null);
+  const [promoChecking, setPromoChecking] = useState(false);
+
   // Email из localStorage (если был сохранён после прошлой оплаты)
   useEffect(() => {
     try {
@@ -50,12 +56,45 @@ export default function CheckoutPage() {
       .catch(() => setMethods([]));
   }, []);
 
-  // Доп. комиссия и итого с её учётом
+  // Скидка по промокоду, доп. комиссия метода и итог.
+  // Комиссия считается с суммы уже за вычетом скидки — как и на бэкенде.
   const selectedMethod = methods.find((m) => m.code === paymentMethod);
+  const discount = appliedPromo?.discount ?? 0;
+  const discountedSubtotal = Math.max(0, Math.round((total - discount) * 100) / 100);
   const extraFee = selectedMethod && selectedMethod.extra_fee_pct
-    ? Math.round((total * selectedMethod.extra_fee_pct) / 100 * 100) / 100
+    ? Math.round((discountedSubtotal * selectedMethod.extra_fee_pct) / 100 * 100) / 100
     : 0;
-  const grandTotal = Math.round((total + extraFee) * 100) / 100;
+  const grandTotal = Math.round((discountedSubtotal + extraFee) * 100) / 100;
+
+  const applyPromo = async () => {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoChecking(true);
+    setPromoError(null);
+    try {
+      const res = await checkPromocode({
+        code,
+        items: items.map((i) => ({ product_id: i.product_id, qty: i.qty, params: i.params })),
+      });
+      if (res.valid) {
+        setAppliedPromo({ code: code.toUpperCase(), discount: res.discount });
+        setPromoError(null);
+      } else {
+        setAppliedPromo(null);
+        setPromoError(res.message ?? 'Промокод недействителен');
+      }
+    } catch (e) {
+      setPromoError(e instanceof Error ? e.message : 'Не удалось проверить промокод');
+    } finally {
+      setPromoChecking(false);
+    }
+  };
+
+  const removePromo = () => {
+    setAppliedPromo(null);
+    setPromoInput('');
+    setPromoError(null);
+  };
 
   // Если корзина пуста — редирект на каталог
   if (hydrated && items.length === 0 && !submitting) {
@@ -87,6 +126,7 @@ export default function CheckoutPage() {
         email,
         phone: phone || undefined,
         payment_method: paymentMethod,
+        promocode: appliedPromo?.code,
         items: items.map((item) => ({
           product_id: item.product_id,
           qty: item.qty,
@@ -258,12 +298,64 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+            {/* Промокод */}
+            <div className="border-t border-gray-200 dark:border-slate-800 mt-4 pt-4">
+              <div className="text-xs text-gray-500 mb-2">Промокод</div>
+              {appliedPromo ? (
+                <div className="flex items-center gap-2 rounded-xl border border-emerald-300 bg-emerald-50 dark:bg-emerald-500/10 px-3 py-2.5 text-sm">
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">{appliedPromo.code}</span>
+                  <span className="text-emerald-600 dark:text-emerald-400">
+                    −{appliedPromo.discount.toLocaleString('ru', { maximumFractionDigits: 0 })} ₽
+                  </span>
+                  <button
+                    type="button"
+                    onClick={removePromo}
+                    className="ml-auto text-gray-400 hover:text-red-500"
+                    aria-label="Убрать промокод"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="ВВЕДИТЕ КОД"
+                    value={promoInput}
+                    onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        applyPromo();
+                      }
+                    }}
+                    className="flex-1 h-10 px-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyPromo}
+                    disabled={promoChecking || !promoInput.trim()}
+                    className="h-10 px-4 rounded-xl border border-gray-200 dark:border-slate-700 text-sm font-medium disabled:opacity-50"
+                  >
+                    {promoChecking ? '…' : 'Применить'}
+                  </button>
+                </div>
+              )}
+              {promoError && <p className="text-xs text-red-500 mt-1.5">{promoError}</p>}
+            </div>
+
             <div className="border-t border-gray-200 dark:border-slate-800 my-4" />
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Сумма</span>
                 <span>{total.toLocaleString('ru', { maximumFractionDigits: 0 })} ₽</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                  <span>Скидка по промокоду</span>
+                  <span>−{discount.toLocaleString('ru', { maximumFractionDigits: 0 })} ₽</span>
+                </div>
+              )}
               {extraFee > 0 && (
                 <div className="flex justify-between text-amber-600">
                   <span>Комиссия {selectedMethod?.name ?? ''}</span>
