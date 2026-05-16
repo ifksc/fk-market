@@ -66,6 +66,12 @@ class AppServiceProvider extends ServiceProvider
                     ->everyMinute()
                     ->withoutOverlapping(2)
                     ->runInBackground();
+
+                // Авто-отмена неоплаченных заказов старше 12 часов.
+                $schedule->command('orders:cancel-stale')
+                    ->hourly()
+                    ->withoutOverlapping()
+                    ->runInBackground();
             });
         }
     }
