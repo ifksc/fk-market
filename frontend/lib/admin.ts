@@ -1051,6 +1051,7 @@ export type AdminSupportTicket = {
   status: 'open' | 'in_progress' | 'resolved' | 'rejected';
   admin_note: string | null;
   order_number: string | null;
+  contact_email: string | null;
   user: { id: number; name: string | null; email: string } | null;
   created_at: string | null;
   resolved_at: string | null;

@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\PromocodeController;
+use App\Http\Controllers\Api\SupportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -50,6 +51,8 @@ Route::get('/payment-methods', [\App\Http\Controllers\Api\PaymentMethodControlle
 Route::post('/checkout', CheckoutController::class);
 // Превью скидки по промокоду на чекауте (до создания заказа)
 Route::post('/promocode/check', [PromocodeController::class, 'check']);
+// Обращение в поддержку от гостя (по номеру заказа + email), с rate-limit
+Route::post('/support', [SupportController::class, 'store'])->middleware('throttle:10,1');
 // Webhook от Freekassa. Старый путь /fkwallet/ оставляем для обратной совместимости.
 // Принимаем И POST, И GET — FK в кабинете может быть настроен любым способом.
 // Если пришёл GET без данных — это health-check, контроллер сам разрулит.
