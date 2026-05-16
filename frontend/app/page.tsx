@@ -179,7 +179,7 @@ export default async function HomePage() {
                   <img
                     src={cat.image_url}
                     alt={cat.name}
-                    className="aspect-[4/3] w-full object-cover bg-slate-100 dark:bg-slate-800"
+                    className="aspect-[4/3] w-full object-contain bg-slate-100 dark:bg-slate-800"
                   />
                 ) : (
                   <div
