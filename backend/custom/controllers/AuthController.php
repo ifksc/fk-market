@@ -637,65 +637,70 @@ class AuthController extends Controller
             return response()->json(['message' => 'VK отверг код входа'], 422);
         }
 
-        $idToken = (string) $resp->json('id_token');
-        if ($idToken === '') {
-            // Сюда дойдём только если VK ответил 200, без error, но без id_token.
-            // 422 (не 502): Cloudflare перехватывает 5xx и подменяет тело на свою error-page,
-            // фронт не увидит наш message. 422 проходит как есть.
-            Log::warning('VK OAuth missing id_token', ['body' => $resp->body()]);
-            return response()->json(['message' => 'VK не вернул id_token'], 422);
+        $accessToken = (string) $resp->json('access_token');
+        if ($accessToken === '') {
+            Log::warning('VK OAuth missing access_token', ['body' => $resp->body()]);
+            return response()->json(['message' => 'VK не вернул access_token'], 422);
         }
 
-        // 2. Валидируем id_token (JWT) по JWKS.
+        // 2. Получаем профиль через user_info.
+        //
+        // Почему не через id_token+JWKS: у VK ID нет публичного JWKS endpoint'а
+        // (перепробованы /oauth2/public_keys, /public_key, /.well-known/* —
+        // все 404, см. журнал решений 2026-05-16). access_token добыт
+        // backend-to-backend по TLS с нашим client_secret — ему можно доверять
+        // без проверки JWT-подписи, поэтому профиль берём через user_info.
         try {
-            $jwks = $this->fetchVkJwks(forceRefresh: false);
-            $keys = JWK::parseKeySet($jwks);
-            try {
-                $payload = (array) JWT::decode($idToken, $keys);
-            } catch (\Firebase\JWT\UnexpectedValueException $e) {
-                Log::info('VK JWKS cache miss for current token, refreshing');
-                $jwks = $this->fetchVkJwks(forceRefresh: true);
-                $keys = JWK::parseKeySet($jwks);
-                $payload = (array) JWT::decode($idToken, $keys);
-            }
+            $userResp = Http::asForm()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->retry(2, 500, function ($e) {
+                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                }, throw: false)
+                ->post('https://id.vk.com/oauth2/user_info', [
+                    'access_token' => $accessToken,
+                    'client_id' => $clientId,
+                ]);
         } catch (\Throwable $e) {
-            Log::warning('VK OAuth id_token verify failed', ['error' => $e->getMessage()]);
-            return response()->json(['message' => 'Подпись id_token не сошлась'], 422);
+            Log::warning('VK OAuth user_info failed', ['error' => $e->getMessage()]);
+            return response()
+                ->json(['message' => 'VK временно недоступен, попробуйте ещё раз'], 503)
+                ->header('Retry-After', '5');
         }
 
-        // 3. Проверка claim'ов: iss + aud
-        if (($payload['iss'] ?? null) !== 'https://id.vk.com') {
-            return response()->json(['message' => 'Неверный iss'], 422);
-        }
-        if ((string) ($payload['aud'] ?? '') !== (string) $clientId) {
-            return response()->json(['message' => 'Неверный aud'], 422);
+        if (!$userResp->ok() || $userResp->json('error')) {
+            Log::warning('VK OAuth user_info error', ['status' => $userResp->status(), 'body' => $userResp->body()]);
+            return response()->json(['message' => 'Не удалось получить профиль VK'], 422);
         }
 
-        // 4. Достаём user-data.
-        // sub — стабильный идентификатор пользователя в VK (равен user_id).
-        $providerUid = (string) ($payload['sub'] ?? $payload['user_id'] ?? '');
+        // VK ID отдаёт { "user": { user_id, first_name, last_name, email, avatar, ... } }.
+        $vk = (array) ($userResp->json('user') ?? $userResp->json());
+
+        // 3. Достаём user-data.
+        $providerUid = (string) ($vk['user_id'] ?? $vk['id'] ?? '');
         if ($providerUid === '') {
-            return response()->json(['message' => 'В id_token нет id пользователя'], 422);
+            Log::warning('VK OAuth no user_id in user_info', ['body' => $userResp->body()]);
+            return response()->json(['message' => 'VK не вернул id пользователя'], 422);
         }
         $email = null;
-        if (!empty($payload['email']) && filter_var($payload['email'], FILTER_VALIDATE_EMAIL)) {
+        if (!empty($vk['email']) && filter_var($vk['email'], FILTER_VALIDATE_EMAIL)) {
             // VK email уже верифицирован у провайдера (юзер логинится по нему).
-            $email = mb_strtolower((string) $payload['email']);
+            $email = mb_strtolower((string) $vk['email']);
         }
-        $firstName = (string) ($payload['given_name'] ?? $payload['first_name'] ?? '');
-        $lastName = (string) ($payload['family_name'] ?? $payload['last_name'] ?? '');
+        $firstName = (string) ($vk['first_name'] ?? '');
+        $lastName = (string) ($vk['last_name'] ?? '');
         $displayName = trim($firstName . ' ' . $lastName) ?: ('VK ' . $providerUid);
-        $photoUrl = isset($payload['picture']) ? (string) $payload['picture'] : null;
+        $photoUrl = isset($vk['avatar']) ? (string) $vk['avatar'] : null;
 
-        // 5. Найти/создать User. Если email с VK уже занят кем-то другим —
+        // 4. Найти/создать User. Если email с VK уже занят кем-то другим —
         // привязываем VK-identity к существующему юзеру (объединение аккаунтов).
-        $user = DB::transaction(function () use ($providerUid, $displayName, $email, $payload) {
+        $user = DB::transaction(function () use ($providerUid, $displayName, $email, $vk) {
             $identity = OauthIdentity::where('provider', 'vk')
                 ->where('provider_uid', $providerUid)
                 ->first();
 
             if ($identity) {
-                $identity->update(['raw_profile' => $payload]);
+                $identity->update(['raw_profile' => $vk]);
                 return $identity->user;
             }
 
@@ -706,7 +711,7 @@ class AuthController extends Controller
                     'user_id' => $existing->id,
                     'provider' => 'vk',
                     'provider_uid' => $providerUid,
-                    'raw_profile' => $payload,
+                    'raw_profile' => $vk,
                 ]);
                 // VK подтвердил email на своей стороне — отметим у нас тоже,
                 // если ещё не отмечен.
@@ -727,7 +732,7 @@ class AuthController extends Controller
                 'user_id' => $user->id,
                 'provider' => 'vk',
                 'provider_uid' => $providerUid,
-                'raw_profile' => $payload,
+                'raw_profile' => $vk,
             ]);
             return $user;
         });
@@ -799,16 +804,6 @@ class AuthController extends Controller
         return $this->fetchOauthJwks(
             'telegram_jwks',
             'https://oauth.telegram.org/.well-known/jwks.json',
-            $forceRefresh,
-        );
-    }
-
-    /** JWKS VK ID — публичные ключи для верификации id_token. */
-    protected function fetchVkJwks(bool $forceRefresh = false): array
-    {
-        return $this->fetchOauthJwks(
-            'vk_jwks',
-            'https://id.vk.com/oauth2/public_keys',
             $forceRefresh,
         );
     }
