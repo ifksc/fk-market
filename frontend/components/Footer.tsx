@@ -44,7 +44,7 @@ export function Footer() {
       <div className="border-t border-gray-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-gray-400 flex items-center justify-between">
           <div>© {new Date().getFullYear()} FK.market · v1.{buildInfo.build}</div>
-          <div>ТОО «CIT («СИТ»)» · БИН 220440014920</div>
+          <div>ТОО («СИТ») · БИН 220440014920</div>
         </div>
       </div>
     </footer>
