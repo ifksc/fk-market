@@ -3,8 +3,8 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { CheckCircle2, MailX, ShieldCheck, ShoppingBag, User as UserIcon } from 'lucide-react';
-import { getAdminUser, type AdminUserDetail } from '@/lib/admin';
+import { CheckCircle2, MailX, Settings, ShieldCheck, ShoppingBag, User as UserIcon } from 'lucide-react';
+import { getAdminUser, updateAdminUser, type AdminUserDetail } from '@/lib/admin';
 
 const ROLE_LABEL: Record<string, string> = {
   customer: 'Покупатель',
@@ -34,15 +34,36 @@ export default function AdminUserPage() {
   const [user, setUser] = useState<AdminUserDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [roleSelect, setRoleSelect] = useState<string>('customer');
+  const [saving, setSaving] = useState(false);
+  const [mgmtError, setMgmtError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!params.id) return;
     setLoading(true);
     getAdminUser(Number(params.id))
-      .then(setUser)
+      .then((u) => {
+        setUser(u);
+        setRoleSelect(u.role);
+      })
       .catch((e) => setError(e instanceof Error ? e.message : 'Ошибка'))
       .finally(() => setLoading(false));
   }, [params.id]);
+
+  const applyUpdate = async (data: { is_blocked?: boolean; role?: string }) => {
+    if (!user) return;
+    setSaving(true);
+    setMgmtError(null);
+    try {
+      const updated = await updateAdminUser(user.id, data);
+      setUser({ ...user, role: updated.role, is_blocked: updated.is_blocked });
+      setRoleSelect(updated.role);
+    } catch (e) {
+      setMgmtError(e instanceof Error ? e.message : 'Не удалось сохранить');
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading) return <div className="p-10 text-center text-sm text-slate-500">Загрузка…</div>;
   if (error || !user) {
@@ -95,6 +116,62 @@ export default function AdminUserPage() {
           <Stat label="Всего заказов" value={user.orders_count.toLocaleString('ru')} />
           <Stat label="Потрачено (paid+completed)" value={`${user.orders_total_sum.toLocaleString('ru')} ₽`} />
           <Stat label="Баланс" value={`${user.balance.toLocaleString('ru')} ₽`} />
+        </section>
+
+        {/* Управление */}
+        <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
+          <div className="flex items-center gap-2 mb-4">
+            <Settings className="w-4 h-4 text-slate-500" />
+            <h2 className="font-semibold">Управление</h2>
+          </div>
+          {mgmtError && (
+            <div className="mb-3 rounded-xl border border-red-300 bg-red-50 dark:bg-red-500/10 p-3 text-sm text-red-600">
+              {mgmtError}
+            </div>
+          )}
+          <div className="divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="flex items-center gap-4 py-3">
+              <div className="text-sm text-slate-500 w-28 shrink-0">Статус</div>
+              <div className="flex-1 text-sm">
+                {user.is_blocked
+                  ? <span className="text-red-600 font-medium">Заблокирован</span>
+                  : <span className="text-emerald-600 font-medium">Активен</span>}
+              </div>
+              <button
+                onClick={() => applyUpdate({ is_blocked: !user.is_blocked })}
+                disabled={saving}
+                className={`h-9 px-4 rounded-lg text-sm font-medium disabled:opacity-50 ${
+                  user.is_blocked
+                    ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                    : 'bg-red-500/15 text-red-600 dark:text-red-400'
+                }`}
+              >
+                {user.is_blocked ? 'Разблокировать' : 'Заблокировать'}
+              </button>
+            </div>
+            <div className="flex items-center gap-4 py-3">
+              <div className="text-sm text-slate-500 w-28 shrink-0">Роль</div>
+              <div className="flex-1">
+                <select
+                  value={roleSelect}
+                  onChange={(e) => setRoleSelect(e.target.value)}
+                  className="h-9 px-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm"
+                >
+                  <option value="customer">Покупатель</option>
+                  <option value="seller">Продавец</option>
+                  <option value="moderator">Модератор</option>
+                  <option value="admin">Админ</option>
+                </select>
+              </div>
+              <button
+                onClick={() => applyUpdate({ role: roleSelect })}
+                disabled={saving || roleSelect === user.role}
+                className="h-9 px-4 rounded-lg fk-grad-btn text-sm font-medium disabled:opacity-50"
+              >
+                Сохранить роль
+              </button>
+            </div>
+          </div>
         </section>
 
         {/* Заказы */}

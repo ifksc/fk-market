@@ -168,6 +168,7 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     // Пользователи
     Route::get('/users', [AdminUser::class, 'index']);
     Route::get('/users/{user:id}', [AdminUser::class, 'show']);
+    Route::patch('/users/{user:id}', [AdminUser::class, 'update']);
 
     Route::get('/payment-methods', [AdminPaymentMethod::class, 'index']);
     Route::post('/payment-methods', [AdminPaymentMethod::class, 'store']);
