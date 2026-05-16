@@ -24,6 +24,8 @@
 <details>
 <summary>История фиксов</summary>
 
+- 2026-05-16 — Страница заказа в ЛК падала с `Undefined variable $reviewedProductIds` (регресс фичи отзывов). Корень: замыкание `->map(function ($it) {...})` в `Me/OrderController::serializeOrder` использовало переменную без захвата `use()`. `php -l` не ловит — это runtime, не синтаксис. Фикс: `use ($reviewedProductIds)`.
+
 - 2026-05-16 — Платежи не фиксировали способ оплаты, `payments` навсегда оставались `status=pending`. Корень: вебхук обновлял платёж через `$order->payment`, но у модели `Order` не было связи `payment()` (только `payments()`) → `$order->payment` = null → блок обновления молча пропускался (метод/статус/intid/raw не сохранялись). Тем же страдали refund в `Admin/OrderController` и `FreekassaGateway`. Фикс: добавлена связь `Order::payment()` (belongsTo по `payment_id`); выбранный на чекауте метод сохраняется в `recordPendingPayment` (надёжный источник), вебхук его не затирает.
 - 2026-05-16 — `products.sales_count` не рос — товары всегда показывали 0 продаж. Корень: `FulfillOrderJob` нигде не инкрементил счётчик (демо-значения были фейковые из сидов). Фикс: инкремент `sales_count` на qty позиций при оплате заказа в `FulfillOrderJob::handle`.
 
