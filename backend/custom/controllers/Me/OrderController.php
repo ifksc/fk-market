@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Me;
 use App\Http\Controllers\Controller;
 use App\Mail\OrderDeliveredMail;
 use App\Models\Order;
+use App\Models\Review;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -53,7 +54,14 @@ class OrderController extends Controller
     public function show(Request $request, string $publicNumber): JsonResponse
     {
         $order = $this->findOwn($request, $publicNumber);
-        return response()->json(['data' => $this->serializeOrder($order, true)]);
+
+        // Товары, на которые юзер уже оставил отзыв (учитываем и неодобренные).
+        $reviewedProductIds = Review::where('user_id', $request->user()->id)
+            ->whereIn('product_id', $order->items->pluck('product_id')->filter()->all())
+            ->pluck('product_id')
+            ->all();
+
+        return response()->json(['data' => $this->serializeOrder($order, true, $reviewedProductIds)]);
     }
 
     /**
@@ -101,7 +109,7 @@ class OrderController extends Controller
         return $order;
     }
 
-    protected function serializeOrder(Order $order, bool $withItems): array
+    protected function serializeOrder(Order $order, bool $withItems, array $reviewedProductIds = []): array
     {
         $base = [
             'public_number' => $order->public_number,
@@ -123,6 +131,7 @@ class OrderController extends Controller
         if ($withItems) {
             $base['items'] = $order->items->map(function ($it) {
                 $delivered = $it->fulfillment_status === 'delivered';
+                $reviewed = $it->product_id && in_array($it->product_id, $reviewedProductIds, true);
                 return [
                     'id' => $it->id,
                     'product' => $it->product ? [
@@ -137,6 +146,9 @@ class OrderController extends Controller
                     'delivered_at' => $it->delivered_at?->toIso8601String(),
                     // Купон/код показываем только если выдан
                     'delivered_payload' => $delivered ? (string) ($it->delivered_payload ?? '') : null,
+                    // Отзыв: оставлен ли уже и можно ли оставить (товар выдан)
+                    'reviewed' => $reviewed,
+                    'can_review' => $delivered && (bool) $it->product_id && !$reviewed,
                 ];
             })->values();
         }

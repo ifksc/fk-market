@@ -34,6 +34,18 @@ class Product extends Model {
         return $q->whereFullText(['name','short_description','description'], $term);
     }
 
+    /** Пересчитать rating и reviews_count по одобренным отзывам. */
+    public function recomputeRating(): void
+    {
+        $stats = $this->reviews()
+            ->selectRaw('COUNT(*) as cnt, COALESCE(AVG(rating), 0) as avg_rating')
+            ->first();
+        $this->forceFill([
+            'reviews_count' => (int) ($stats->cnt ?? 0),
+            'rating' => round((float) ($stats->avg_rating ?? 0), 2),
+        ])->save();
+    }
+
     public function primaryImage(): ?ProductImage { return $this->images->where('is_primary', true)->first() ?? $this->images->first(); }
     public function hasDiscount(): bool { return $this->price_old && $this->price_old > $this->price_final; }
     public function discountPct(): int

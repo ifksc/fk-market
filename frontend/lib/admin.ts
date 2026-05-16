@@ -992,3 +992,40 @@ export async function getDashboardStats(period = '30d'): Promise<DashboardStats>
   const r = await adminFetch<{ data: DashboardStats }>(`/admin/dashboard?period=${encodeURIComponent(period)}`);
   return r.data;
 }
+
+// ---------- Отзывы (модерация) ----------
+export type AdminReview = {
+  id: number;
+  rating: number;
+  text: string | null;
+  is_approved: boolean;
+  product: { id: number; name: string; slug: string } | null;
+  author: string;
+  author_email: string | null;
+  created_at: string | null;
+};
+
+export async function listAdminReviews(
+  query: { status?: 'pending' | 'approved' | 'all'; page?: number; per_page?: number } = {},
+): Promise<Paginated<AdminReview> & { meta: { pending_total?: number } }> {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== 'all') params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return adminFetch<Paginated<AdminReview> & { meta: { pending_total?: number } }>(
+    `/admin/reviews${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export async function approveAdminReview(id: number): Promise<void> {
+  await adminFetch(`/admin/reviews/${id}/approve`, { method: 'POST' });
+}
+
+export async function unapproveAdminReview(id: number): Promise<void> {
+  await adminFetch(`/admin/reviews/${id}/unapprove`, { method: 'POST' });
+}
+
+export async function deleteAdminReview(id: number): Promise<void> {
+  await adminFetch(`/admin/reviews/${id}`, { method: 'DELETE' });
+}

@@ -31,6 +31,10 @@ export type MyOrderItem = {
   fulfillment_status: string;
   delivered_at: string | null;
   delivered_payload: string | null;
+  /** Покупатель уже оставил отзыв на этот товар. */
+  reviewed: boolean;
+  /** Можно оставить отзыв (товар выдан и отзыва ещё нет). */
+  can_review: boolean;
 };
 
 export type MyOrderDetail = MyOrderSummary & {
@@ -78,4 +82,13 @@ export async function getMyOrder(publicNumber: string): Promise<MyOrderDetail> {
 
 export async function resendOrderEmail(publicNumber: string): Promise<void> {
   await meFetch(`/me/orders/${encodeURIComponent(publicNumber)}/resend`, { method: 'POST' });
+}
+
+/** Отзыв на купленный товар. Премодерация — появится на сайте после одобрения. */
+export async function submitReview(input: {
+  product_id: number;
+  rating: number;
+  text?: string;
+}): Promise<void> {
+  await meFetch('/me/reviews', { method: 'POST', body: JSON.stringify(input) });
 }

@@ -7,6 +7,7 @@ import { CheckCircle2, Clock, Copy, Mail, RefreshCw, ShoppingBag } from 'lucide-
 import { useAuth } from '@/components/AuthProvider';
 import { AuthError } from '@/lib/auth';
 import { getMyOrder, resendOrderEmail, type MyOrderDetail } from '@/lib/account';
+import { ReviewForm } from '@/components/ReviewForm';
 
 export default function OrderDetailPage() {
   const params = useParams<{ public_number: string }>();
@@ -18,6 +19,8 @@ export default function OrderDetailPage() {
   const [copied, setCopied] = useState<number | null>(null);
   const [resending, setResending] = useState(false);
   const [resentNotice, setResentNotice] = useState<string | null>(null);
+  const [openReview, setOpenReview] = useState<number | null>(null);
+  const [reviewedNow, setReviewedNow] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) router.replace(`/login?redirect=/account/orders/${params.public_number}`);
@@ -139,6 +142,31 @@ export default function OrderDetailPage() {
                   {fulfillmentLabel(it.fulfillment_status)}
                 </div>
               )}
+
+              {/* Отзыв на купленный товар */}
+              {it.product && (it.reviewed || reviewedNow.has(it.id)) ? (
+                <div className="mt-3 text-xs text-emerald-600 dark:text-emerald-400 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-3.5 h-3.5" /> Вы оставили отзыв — появится после проверки
+                </div>
+              ) : it.can_review && it.product ? (
+                openReview === it.id ? (
+                  <ReviewForm
+                    productId={it.product.id}
+                    onDone={() => {
+                      setReviewedNow((s) => new Set(s).add(it.id));
+                      setOpenReview(null);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setOpenReview(it.id)}
+                    className="mt-3 text-sm text-brand-600 hover:underline"
+                  >
+                    Оставить отзыв
+                  </button>
+                )
+              ) : null}
             </div>
           ))}
         </div>

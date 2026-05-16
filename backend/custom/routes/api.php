@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Admin\PaymentMethodController as AdminPaymentMethod
 use App\Http\Controllers\Api\Admin\PricingController as AdminPricing;
 use App\Http\Controllers\Api\Admin\ProductController as AdminProduct;
 use App\Http\Controllers\Api\Admin\PromocodeController as AdminPromocode;
+use App\Http\Controllers\Api\Admin\ReviewController as AdminReview;
 use App\Http\Controllers\Api\Admin\ProviderCatalogController as AdminProviderCatalog;
 use App\Http\Controllers\Api\Admin\ProviderController as AdminProvider;
 use App\Http\Controllers\Api\Admin\QueueController as AdminQueue;
@@ -16,6 +17,7 @@ use App\Http\Controllers\Api\Admin\StockController as AdminStock;
 use App\Http\Controllers\Api\Admin\UserController as AdminUser;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\Me\OrderController as MeOrderController;
+use App\Http\Controllers\Api\Me\ReviewController as MeReviewController;
 use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\PaymentWebhookController;
@@ -84,6 +86,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/orders', [MeOrderController::class, 'index']);
         Route::get('/orders/{public_number}', [MeOrderController::class, 'show']);
         Route::post('/orders/{public_number}/resend', [MeOrderController::class, 'resend']);
+        Route::post('/reviews', [MeReviewController::class, 'store']);
     });
 });
 
@@ -156,6 +159,11 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/promocodes/{promocode}', [AdminPromocode::class, 'show']);
     Route::put('/promocodes/{promocode}', [AdminPromocode::class, 'update']);
     Route::delete('/promocodes/{promocode}', [AdminPromocode::class, 'destroy']);
+
+    Route::get('/reviews', [AdminReview::class, 'index']);
+    Route::post('/reviews/{review}/approve', [AdminReview::class, 'approve']);
+    Route::post('/reviews/{review}/unapprove', [AdminReview::class, 'unapprove']);
+    Route::delete('/reviews/{review}', [AdminReview::class, 'destroy']);
 
     // Пользователи
     Route::get('/users', [AdminUser::class, 'index']);
