@@ -114,6 +114,21 @@ export async function checkPromocode(input: {
   return r.data;
 }
 
+// ---------- Поддержка (гостевое обращение) ----------
+export async function createGuestTicket(input: {
+  public_number: string;
+  email: string;
+  kind: 'code_not_working' | 'wrong_item' | 'other';
+  subject: string;
+  body: string;
+}): Promise<void> {
+  await apiFetch('/support', {
+    method: 'POST',
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  } as RequestInit);
+}
+
 export type CheckoutResponse = {
   order_id: number;
   public_number: string;

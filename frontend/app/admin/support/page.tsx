@@ -127,7 +127,11 @@ function TicketCard({ ticket, onSaved }: { ticket: AdminSupportTicket; onSaved: 
       <div className="text-xs text-slate-400 mb-3">
         {KIND_LABEL[ticket.kind] ?? ticket.kind}
         {ticket.order_number ? ` · заказ ${ticket.order_number}` : ''}
-        {ticket.user ? ` · ${ticket.user.name ?? 'без имени'} (${ticket.user.email})` : ''}
+        {ticket.user
+          ? ` · ${ticket.user.name ?? 'без имени'} (${ticket.user.email})`
+          : ticket.contact_email
+            ? ` · гость (${ticket.contact_email})`
+            : ''}
         {ticket.created_at ? ` · ${new Date(ticket.created_at).toLocaleString('ru')}` : ''}
       </div>
       <p className="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-line mb-4">{ticket.body}</p>

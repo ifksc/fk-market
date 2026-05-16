@@ -19,7 +19,7 @@ class SupportController extends Controller
     public function index(Request $request): JsonResponse
     {
         $q = SupportTicket::query()
-            ->with(['user:id,name,email', 'order:id,public_number'])
+            ->with(['user:id,name,email', 'order:id,public_number,email'])
             ->orderByDesc('id');
 
         if ($status = $request->string('status')->toString()) {
@@ -42,7 +42,7 @@ class SupportController extends Controller
 
     public function show(SupportTicket $ticket): JsonResponse
     {
-        $ticket->load(['user:id,name,email', 'order:id,public_number']);
+        $ticket->load(['user:id,name,email', 'order:id,public_number,email']);
         return response()->json(['data' => $this->serialize($ticket)]);
     }
 
@@ -64,7 +64,7 @@ class SupportController extends Controller
                 : null;
         }
         $ticket->save();
-        $ticket->load(['user:id,name,email', 'order:id,public_number']);
+        $ticket->load(['user:id,name,email', 'order:id,public_number,email']);
 
         return response()->json(['data' => $this->serialize($ticket)]);
     }
@@ -80,6 +80,8 @@ class SupportController extends Controller
             'status' => $t->status,
             'admin_note' => $t->admin_note,
             'order_number' => $t->order?->public_number,
+            // Контакт для ответа: email аккаунта или email заказа (для гостей).
+            'contact_email' => $t->user?->email ?? $t->order?->email,
             'user' => $t->user ? [
                 'id' => $t->user->id,
                 'name' => $t->user->name,

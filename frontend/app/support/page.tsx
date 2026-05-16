@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useState } from 'react';
 import { useAuth } from '@/components/AuthProvider';
 import { AuthError } from '@/lib/auth';
+import { createGuestTicket } from '@/lib/api';
 import {
   createTicket,
   listMyOrders,
@@ -97,17 +98,7 @@ function SupportInner() {
       </p>
 
       {!user ? (
-        <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-8 text-center max-w-md">
-          <p className="text-sm text-gray-600 dark:text-slate-300 mb-4">
-            Чтобы создать обращение и видеть историю переписки, войдите в аккаунт.
-          </p>
-          <Link
-            href="/login?redirect=/support"
-            className="inline-flex h-11 px-6 rounded-xl fk-grad-btn font-medium items-center"
-          >
-            Войти
-          </Link>
-        </div>
+        <GuestSupportForm />
       ) : (
         <div className="grid lg:grid-cols-2 gap-6">
           {/* Форма */}
@@ -211,6 +202,134 @@ function SupportInner() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Гостевая форма обращения — по номеру заказа + email, без аккаунта. */
+function GuestSupportForm() {
+  const searchParams = useSearchParams();
+  const [publicNumber, setPublicNumber] = useState(searchParams.get('order') ?? '');
+  const [email, setEmail] = useState('');
+  const [kind, setKind] = useState<SupportTicket['kind']>('other');
+  const [subject, setSubject] = useState('');
+  const [body, setBody] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [done, setDone] = useState(false);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    if (!publicNumber.trim() || !email.trim() || !subject.trim() || !body.trim()) {
+      setError('Заполните все поля');
+      return;
+    }
+    setSubmitting(true);
+    try {
+      await createGuestTicket({
+        public_number: publicNumber.trim(),
+        email: email.trim(),
+        kind,
+        subject: subject.trim(),
+        body: body.trim(),
+      });
+      setDone(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось отправить обращение');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (done) {
+    return (
+      <div className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-8 max-w-md">
+        <div className="font-bold text-lg mb-2">Обращение отправлено</div>
+        <p className="text-sm text-gray-600 dark:text-slate-300">
+          Ответим на email, указанный в заказе. Спасибо за обращение.
+        </p>
+      </div>
+    );
+  }
+
+  const inputCls =
+    'w-full h-11 px-3 mb-3 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm';
+
+  return (
+    <div className="max-w-md">
+      <form
+        onSubmit={submit}
+        className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-6"
+      >
+        <div className="font-bold mb-1">Обращение по заказу</div>
+        <p className="text-xs text-gray-500 mb-4">
+          Укажите номер заказа и email, на который он был оформлен.
+        </p>
+
+        <label className="text-xs text-gray-500 mb-1 block">Номер заказа</label>
+        <input
+          value={publicNumber}
+          onChange={(e) => setPublicNumber(e.target.value)}
+          placeholder="FK-2026-XXXXX"
+          className={`${inputCls} font-mono`}
+        />
+
+        <label className="text-xs text-gray-500 mb-1 block">Email из заказа</label>
+        <input
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="you@example.com"
+          className={inputCls}
+        />
+
+        <label className="text-xs text-gray-500 mb-1 block">Тип обращения</label>
+        <select
+          value={kind}
+          onChange={(e) => setKind(e.target.value as SupportTicket['kind'])}
+          className={inputCls}
+        >
+          <option value="code_not_working">Код не работает</option>
+          <option value="wrong_item">Пришёл не тот товар</option>
+          <option value="other">Другой вопрос</option>
+        </select>
+
+        <label className="text-xs text-gray-500 mb-1 block">Тема</label>
+        <input
+          value={subject}
+          onChange={(e) => setSubject(e.target.value)}
+          maxLength={200}
+          placeholder="Кратко о проблеме"
+          className={inputCls}
+        />
+
+        <label className="text-xs text-gray-500 mb-1 block">Сообщение</label>
+        <textarea
+          value={body}
+          onChange={(e) => setBody(e.target.value)}
+          maxLength={5000}
+          placeholder="Опишите подробно: что произошло, что ожидали…"
+          className="w-full h-28 px-3 py-2 rounded-xl border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-sm resize-none"
+        />
+
+        {error && <p className="text-sm text-red-600 mt-2">{error}</p>}
+
+        <button
+          type="submit"
+          disabled={submitting}
+          className="mt-4 w-full h-12 rounded-xl fk-grad-btn font-semibold disabled:opacity-50"
+        >
+          {submitting ? 'Отправляем…' : 'Отправить обращение'}
+        </button>
+      </form>
+      <p className="text-xs text-gray-500 mt-3 text-center">
+        Есть аккаунт?{' '}
+        <Link href="/login?redirect=/support" className="text-brand-600 hover:underline">
+          Войдите
+        </Link>{' '}
+        — увидите историю обращений.
+      </p>
     </div>
   );
 }
