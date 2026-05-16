@@ -15,7 +15,18 @@ async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
     next: { revalidate: 60, ...(opts as { next?: object })?.next },
   });
   if (!res.ok) {
-    throw new Error(`API ${path} → ${res.status} ${res.statusText}`);
+    // Пытаемся достать читаемый текст из тела ответа (Laravel отдаёт { message }).
+    // Если тела нет или оно не JSON — показываем технический фолбэк.
+    let message = `API ${path} → ${res.status} ${res.statusText}`;
+    try {
+      const body = (await res.json()) as { message?: unknown };
+      if (typeof body?.message === 'string' && body.message.trim()) {
+        message = body.message;
+      }
+    } catch {
+      /* тело не JSON — оставляем фолбэк */
+    }
+    throw new Error(message);
   }
   return res.json() as Promise<T>;
 }
