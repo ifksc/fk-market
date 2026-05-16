@@ -1080,3 +1080,68 @@ export async function updateAdminTicket(
   });
   return r.data;
 }
+
+// ---------- FAQ ----------
+export type AdminFaqItem = {
+  id: number;
+  question: string;
+  answer: string;
+  category: string | null;
+  is_general: boolean;
+  sort: number;
+  is_active: boolean;
+};
+
+export type AdminFaqInput = Partial<{
+  question: string;
+  answer: string;
+  category: string | null;
+  is_general: boolean;
+  sort: number;
+  is_active: boolean;
+}>;
+
+export async function listAdminFaq(): Promise<AdminFaqItem[]> {
+  const r = await adminFetch<{ data: AdminFaqItem[] }>('/admin/faq');
+  return r.data;
+}
+
+export async function getAdminFaq(id: number): Promise<AdminFaqItem> {
+  const r = await adminFetch<{ data: AdminFaqItem }>(`/admin/faq/${id}`);
+  return r.data;
+}
+
+export async function createAdminFaq(data: AdminFaqInput): Promise<AdminFaqItem> {
+  const r = await adminFetch<{ data: AdminFaqItem }>('/admin/faq', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
+
+export async function updateAdminFaq(id: number, data: AdminFaqInput): Promise<AdminFaqItem> {
+  const r = await adminFetch<{ data: AdminFaqItem }>(`/admin/faq/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
+
+export async function deleteAdminFaq(id: number): Promise<void> {
+  await adminFetch(`/admin/faq/${id}`, { method: 'DELETE' });
+}
+
+/** FAQ, привязанные к товару. */
+export async function getProductFaq(productId: number): Promise<AdminFaqItem[]> {
+  const r = await adminFetch<{ data: AdminFaqItem[] }>(`/admin/products/${productId}/faq`);
+  return r.data;
+}
+
+/** Синхронизировать привязку FAQ к товару. */
+export async function syncProductFaq(productId: number, faqItemIds: number[]): Promise<AdminFaqItem[]> {
+  const r = await adminFetch<{ data: AdminFaqItem[] }>(`/admin/products/${productId}/faq`, {
+    method: 'PUT',
+    body: JSON.stringify({ faq_item_ids: faqItemIds }),
+  });
+  return r.data;
+}

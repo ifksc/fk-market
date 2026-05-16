@@ -3,6 +3,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Product extends Model {
@@ -25,6 +26,7 @@ class Product extends Model {
     public function images(): HasMany { return $this->hasMany(ProductImage::class)->orderBy('sort_order'); }
     public function stockItems(): HasMany { return $this->hasMany(StockItem::class); }
     public function reviews(): HasMany { return $this->hasMany(Review::class)->where('is_approved', true); }
+    public function faqItems(): BelongsToMany { return $this->belongsToMany(FaqItem::class, 'faq_item_product'); }
 
     public function getRouteKeyName(): string { return 'slug'; }
 

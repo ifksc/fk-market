@@ -72,6 +72,11 @@ export type ProductDetail = Product & {
     author: string;
     created_at: string | null;
   }>;
+  faq: Array<{
+    id: number;
+    question: string;
+    answer: string;
+  }>;
 };
 
 export type Paginated<T> = {

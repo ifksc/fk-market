@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Admin\AuthController as AdminAuth;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategory;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Api\Admin\FaqController as AdminFaq;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrder;
 use App\Http\Controllers\Api\Admin\PaymentMethodController as AdminPaymentMethod;
 use App\Http\Controllers\Api\Admin\PricingController as AdminPricing;
@@ -24,6 +25,7 @@ use App\Http\Controllers\Api\CategoryController;
 use App\Http\Controllers\Api\CheckoutController;
 use App\Http\Controllers\Api\PaymentWebhookController;
 use App\Http\Controllers\Api\ProductController;
+use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\PromocodeController;
 use App\Http\Controllers\Api\SupportController;
 use Illuminate\Http\Request;
@@ -47,6 +49,9 @@ Route::get('/steam-validate', \App\Http\Controllers\Api\SteamValidateController:
 
 // Публичный список способов оплаты (для /checkout)
 Route::get('/payment-methods', [\App\Http\Controllers\Api\PaymentMethodController::class, 'index']);
+
+// Общий FAQ
+Route::get('/faq', [FaqController::class, 'index']);
 
 Route::post('/checkout', CheckoutController::class);
 // Превью скидки по промокоду на чекауте (до создания заказа)
@@ -176,6 +181,14 @@ Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function ()
     Route::get('/support', [AdminSupport::class, 'index']);
     Route::get('/support/{ticket}', [AdminSupport::class, 'show']);
     Route::patch('/support/{ticket}', [AdminSupport::class, 'update']);
+
+    Route::get('/faq', [AdminFaq::class, 'index']);
+    Route::post('/faq', [AdminFaq::class, 'store']);
+    Route::get('/faq/{faq}', [AdminFaq::class, 'show']);
+    Route::put('/faq/{faq}', [AdminFaq::class, 'update']);
+    Route::delete('/faq/{faq}', [AdminFaq::class, 'destroy']);
+    Route::get('/products/{product:id}/faq', [AdminFaq::class, 'forProduct']);
+    Route::put('/products/{product:id}/faq', [AdminFaq::class, 'syncForProduct']);
 
     // Пользователи
     Route::get('/users', [AdminUser::class, 'index']);

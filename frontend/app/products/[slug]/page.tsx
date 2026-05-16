@@ -4,6 +4,7 @@ import { getCategories, getProduct } from '@/lib/api';
 import { ProductBuyBox } from '@/components/ProductBuyBox';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ProductTabs } from '@/components/ProductTabs';
+import { FaqAccordion } from '@/components/FaqAccordion';
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
   ai: 'from-brand-500 via-fuchsia-500 to-pink-500',
@@ -90,6 +91,14 @@ export default async function ProductPage({
             reviews={product.reviews}
             reviewsCount={product.reviews_count}
           />
+
+          {/* Частые вопросы о товаре */}
+          {product.faq.length > 0 && (
+            <section className="mt-10">
+              <h2 className="font-bold text-lg mb-4">Частые вопросы о товаре</h2>
+              <FaqAccordion items={product.faq} />
+            </section>
+          )}
         </div>
 
         {/* Правая колонка: блок покупки (client component) */}
