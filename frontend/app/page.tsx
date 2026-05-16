@@ -91,10 +91,10 @@ export default async function HomePage() {
                     className="group rounded-xl overflow-hidden border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-brand-500 transition flex flex-col"
                     title={p.name}
                   >
-                    <div className={`aspect-[3/4] relative ${p.image ? 'bg-slate-100 dark:bg-slate-800' : `bg-gradient-to-br ${grad}`} flex items-center justify-center`}>
+                    <div className={`aspect-[4/3] relative ${p.image ? 'bg-slate-100 dark:bg-slate-800' : `bg-gradient-to-br ${grad}`} flex items-center justify-center`}>
                       {p.image ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-cover" />
+                        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-contain" />
                       ) : (
                         <div className="text-white/85 text-xs font-bold tracking-wide text-center px-2 line-clamp-3">
                           {p.name}
