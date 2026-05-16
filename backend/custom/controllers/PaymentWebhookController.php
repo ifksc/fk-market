@@ -95,12 +95,17 @@ class PaymentWebhookController extends Controller
             'paid_at' => now(),
         ]);
 
-        if ($order->payment) {
-            $order->payment->update([
+        // Канонический платёж заказа. Раньше тут было $order->payment без связи
+        // payment() в модели — блок молча пропускался, платёж не обновлялся.
+        $payment = $order->payment ?? $order->payments()->latest('id')->first();
+        if ($payment) {
+            $payment->update([
                 'status' => 'paid',
                 'paid_at' => now(),
                 'provider_payment_id' => (string) ($data['intid'] ?? null),
-                'method' => self::detectMethod($data),
+                // Не затираем способ, выбранный покупателем на чекауте;
+                // detectMethod — только fallback, если он не был сохранён.
+                'method' => $payment->method ?: self::detectMethod($data),
                 'raw_response' => $data,
             ]);
         }

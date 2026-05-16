@@ -171,12 +171,14 @@ class FreekassaGateway
     }
 
     /** Сохранить запись Payment до отправки пользователя на Freekassa. */
-    public function recordPendingPayment(Order $order, string $paymentUrl): Payment
+    public function recordPendingPayment(Order $order, string $paymentUrl, ?string $method = null): Payment
     {
         return Payment::create([
             'order_id' => $order->id,
             'provider' => 'freekassa',
-            'method' => null,
+            // Способ оплаты, выбранный покупателем на чекауте — надёжный источник.
+            // Вебхук FK может уточнить его, но не затирает (см. PaymentWebhookController).
+            'method' => $method,
             'amount' => $order->total,
             'currency' => $order->currency,
             'status' => 'pending',

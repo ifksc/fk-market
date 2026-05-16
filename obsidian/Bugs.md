@@ -24,6 +24,9 @@
 <details>
 <summary>История фиксов</summary>
 
+- 2026-05-16 — Платежи не фиксировали способ оплаты, `payments` навсегда оставались `status=pending`. Корень: вебхук обновлял платёж через `$order->payment`, но у модели `Order` не было связи `payment()` (только `payments()`) → `$order->payment` = null → блок обновления молча пропускался (метод/статус/intid/raw не сохранялись). Тем же страдали refund в `Admin/OrderController` и `FreekassaGateway`. Фикс: добавлена связь `Order::payment()` (belongsTo по `payment_id`); выбранный на чекауте метод сохраняется в `recordPendingPayment` (надёжный источник), вебхук его не затирает.
+- 2026-05-16 — `products.sales_count` не рос — товары всегда показывали 0 продаж. Корень: `FulfillOrderJob` нигде не инкрементил счётчик (демо-значения были фейковые из сидов). Фикс: инкремент `sales_count` на qty позиций при оплате заказа в `FulfillOrderJob::handle`.
+
 - 2026-05-16 — OAuth-логин падал с «Несовпадение state — возможна попытка CSRF» (VK, латентно — Telegram/Яндекс). Корень: session хранилась в `sessionStorage` под одним фиксированным ключом — повторный старт входа (двойной клик / кнопка «назад» через историю браузера) перезаписывал `state`, и callback завершённой ранее попытки видел чужой. Фикс: ключ хранения включает `state` (`fk-vk-oauth:<state>`) — попытки уживаются, callback находит свою; поиск по state сам стал CSRF-проверкой. Применено к 3 провайдерам.
 - 2026-05-16 — `fk_frontend` вечно `unhealthy` при рабочем фронте. Корень: healthcheck `wget ... http://localhost:3000/`, а Next.js (`server.js`) слушает только IPv4 (`HOSTNAME=0.0.0.0`); BusyBox wget резолвит `localhost` в IPv6 `::1` → «Connection refused». Фикс: `localhost` → `127.0.0.1` в `frontend/docker-compose.yml`.
 
