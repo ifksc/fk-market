@@ -443,15 +443,17 @@ class AuthController extends Controller
         //
         //   connectTimeout(5) — если TCP-handshake не уложился — рестартуем;
         //   timeout(15)       — total cap на весь запрос;
-        //   retry(2, 500)     — две перепопытки только на ConnectionException
+        //   retry(3, 800)     — три перепопытки только на ConnectionException
         //                       (если Telegram ответил 4xx — code одноразовый,
-        //                       повтор даст invalid_grant, ретрая делать нельзя);
+        //                       повтор даст invalid_grant, ретрая делать нельзя).
+        //                       4 попытки суммарно: при ~40% потерь handshake'ов
+        //                       шанс успеха ≈ 1 − 0.4⁴ ≈ 97%;
         //   throw=false       — при провале всех попыток упадём в catch ниже.
         try {
             $resp = Http::asForm()
                 ->connectTimeout(5)
                 ->timeout(15)
-                ->retry(2, 500, function ($e) {
+                ->retry(3, 800, function ($e) {
                     return $e instanceof \Illuminate\Http\Client\ConnectionException;
                 }, throw: false)
                 ->withBasicAuth($clientId, $clientSecret)
@@ -610,7 +612,7 @@ class AuthController extends Controller
             $resp = Http::asForm()
                 ->connectTimeout(5)
                 ->timeout(15)
-                ->retry(2, 500, function ($e) {
+                ->retry(3, 800, function ($e) {
                     return $e instanceof \Illuminate\Http\Client\ConnectionException;
                 }, throw: false)
                 ->post('https://id.vk.com/oauth2/auth', [
@@ -654,7 +656,7 @@ class AuthController extends Controller
             $userResp = Http::asForm()
                 ->connectTimeout(5)
                 ->timeout(15)
-                ->retry(2, 500, function ($e) {
+                ->retry(3, 800, function ($e) {
                     return $e instanceof \Illuminate\Http\Client\ConnectionException;
                 }, throw: false)
                 ->post('https://id.vk.com/oauth2/user_info', [
@@ -770,9 +772,16 @@ class AuthController extends Controller
      */
     protected function fetchOauthJwks(string $cacheKey, string $url, bool $forceRefresh = false): array
     {
-        if ($forceRefresh) {
-            Cache::forget($cacheKey);
-        } else {
+        // Двухуровневый кэш:
+        //   $cacheKey        — «свежий», TTL 1 час (триггерит периодический refresh);
+        //   $cacheKey_stale  — последняя успешно загруженная копия, TTL 30 дней.
+        // Если сеть до провайдера упала, а свежего кэша нет — отдаём stale:
+        // JWKS-ключи у Telegram/VK меняются раз в месяцы, прошлый набор почти
+        // наверняка ещё валиден. Это убирает «Подпись id_token не сошлась»
+        // при transient-сбоях маршрута до oauth.telegram.org.
+        $staleKey = $cacheKey . '_stale';
+
+        if (!$forceRefresh) {
             $cached = Cache::get($cacheKey);
             if (is_array($cached) && !empty($cached['keys'])) {
                 return $cached;
@@ -780,22 +789,34 @@ class AuthController extends Controller
         }
 
         $resp = Http::connectTimeout(5)->timeout(15)
-            ->retry(2, 500, function ($e) {
+            ->retry(3, 800, function ($e) {
                 return $e instanceof \Illuminate\Http\Client\ConnectionException;
             }, throw: false)
             ->get($url);
 
-        if (!$resp || !$resp->ok()) {
-            throw new \RuntimeException('JWKS HTTP ' . ($resp ? $resp->status() : 'no response'));
+        if ($resp && $resp->ok()) {
+            $data = $resp->json();
+            if (is_array($data) && !empty($data['keys'])) {
+                Cache::put($cacheKey, $data, 3600);                 // свежий — 1 час
+                Cache::put($staleKey, $data, 60 * 60 * 24 * 30);    // stale — 30 дней
+                return $data;
+            }
         }
 
-        $data = $resp->json();
-        if (!is_array($data) || empty($data['keys'])) {
-            throw new \RuntimeException('JWKS payload invalid');
+        // Сеть не дала валидный JWKS — пробуем stale-копию.
+        $stale = Cache::get($staleKey);
+        if (is_array($stale) && !empty($stale['keys'])) {
+            Log::warning('JWKS fetch failed, using stale copy', [
+                'key' => $cacheKey,
+                'http' => $resp ? $resp->status() : 'no response',
+            ]);
+            return $stale;
         }
 
-        Cache::put($cacheKey, $data, 3600);
-        return $data;
+        throw new \RuntimeException(
+            'JWKS unavailable and no stale copy: ' . $cacheKey
+            . ' (HTTP ' . ($resp ? $resp->status() : 'no response') . ')'
+        );
     }
 
     /** Хелпер обратной совместимости — Telegram JWKS. */
