@@ -38,6 +38,31 @@ export default async function HomePage() {
     getProducts({ sort: 'new', per_page: 8 }),
   ]);
 
+  // Микроразметка Organization + WebSite (с строкой поиска для поисковиков).
+  const siteLd = [
+    {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'FK.market',
+      url: 'https://fk.market',
+      logo: 'https://fk.market/favicon.svg',
+    },
+    {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'FK.market',
+      url: 'https://fk.market',
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: 'https://fk.market/catalog?q={search_term_string}',
+        },
+        'query-input': 'required name=search_term_string',
+      },
+    },
+  ];
+
   return (
     <>
       {/* HERO */}
@@ -231,6 +256,11 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }}
+      />
     </>
   );
 }

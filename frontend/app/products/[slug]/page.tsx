@@ -91,6 +91,65 @@ export default async function ProductPage({
   const lastCat = breadcrumbs[breadcrumbs.length - 1];
   const showProductInBreadcrumbs = !lastCat || lastCat.name !== product.name;
 
+  // Микроразметка Schema.org — Яндекс/Google могут показать цену, наличие
+  // и рейтинг прямо в выдаче.
+  const baseUrl = 'https://fk.market';
+  const productUrl = `${baseUrl}/products/${product.slug}`;
+  const outOfStock = product.fulfillment_mode === 'stock' && product.stock_available === 0;
+
+  const productLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Product',
+    name: product.name,
+    description: metaDescription(product.description || product.short_description, product.name),
+    image: product.images?.length ? product.images : product.image ? [product.image] : undefined,
+    category: product.category?.name,
+    offers: {
+      '@type': 'Offer',
+      price: product.price,
+      priceCurrency: product.currency || 'RUB',
+      availability: outOfStock
+        ? 'https://schema.org/OutOfStock'
+        : 'https://schema.org/InStock',
+      url: productUrl,
+    },
+    // Рейтинг отдаём только при наличии отзывов — иначе разметка невалидна.
+    ...(product.reviews_count > 0
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: product.rating,
+            reviewCount: product.reviews_count,
+          },
+        }
+      : {}),
+  };
+
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Главная', item: `${baseUrl}/` },
+      { '@type': 'ListItem', position: 2, name: 'Каталог', item: `${baseUrl}/catalog` },
+      ...breadcrumbs.map((c, i) => ({
+        '@type': 'ListItem',
+        position: i + 3,
+        name: c.name,
+        item: `${baseUrl}/catalog?category=${encodeURIComponent(c.slug)}`,
+      })),
+      ...(showProductInBreadcrumbs
+        ? [
+            {
+              '@type': 'ListItem',
+              position: breadcrumbs.length + 3,
+              name: product.name,
+              item: productUrl,
+            },
+          ]
+        : []),
+    ],
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6">
       {/* Хлебные крошки */}
@@ -145,6 +204,15 @@ export default async function ProductPage({
         {/* Правая колонка: блок покупки (client component) */}
         <ProductBuyBox product={product} />
       </div>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+      />
     </div>
   );
 }
