@@ -42,13 +42,9 @@ function Inner() {
       return;
     }
 
-    const session = popVkOAuthSession();
+    const session = popVkOAuthSession(state);
     if (!session) {
       setError('Сессия истекла, попробуйте войти ещё раз');
-      return;
-    }
-    if (session.state !== state) {
-      setError('Несовпадение state — возможна попытка CSRF');
       return;
     }
 

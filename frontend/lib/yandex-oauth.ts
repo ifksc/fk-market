@@ -5,7 +5,10 @@
 //   - scope настраивается в кабинете oauth.yandex.ru (login:email login:info
 //     login:avatar) — в authorize-URL не передаём.
 
-const STORAGE_KEY = 'fk-yandex-oauth';
+// Сессия хранится под ключом `${STORAGE_PREFIX}:${state}` — с включением state.
+// Так в sessionStorage уживаются несколько незавершённых попыток входа
+// (повторный клик, кнопка «назад»), и callback находит именно свою по state.
+const STORAGE_PREFIX = 'fk-yandex-oauth';
 const AUTHORIZE_URL = 'https://oauth.yandex.ru/authorize';
 
 export type YandexOAuthSession = {
@@ -65,7 +68,7 @@ export async function startYandexOAuth(): Promise<void> {
     code_verifier: verifier,
     redirect_uri: redirectUri,
   };
-  sessionStorage.setItem(STORAGE_KEY, JSON.stringify(session));
+  sessionStorage.setItem(`${STORAGE_PREFIX}:${state}`, JSON.stringify(session));
 
   const params = new URLSearchParams({
     client_id: clientId,
@@ -78,11 +81,16 @@ export async function startYandexOAuth(): Promise<void> {
   window.location.assign(`${AUTHORIZE_URL}?${params.toString()}`);
 }
 
-/** Читаем session обратно (в callback-странице). */
-export function popYandexOAuthSession(): YandexOAuthSession | null {
-  const raw = sessionStorage.getItem(STORAGE_KEY);
+/**
+ * Читаем session обратно (в callback-странице) по state, который вернул Яндекс.
+ * Поиск по state заодно играет роль CSRF-проверки: подделанный/чужой state →
+ * ключа в sessionStorage нет → null (callback покажет «сессия истекла»).
+ */
+export function popYandexOAuthSession(state: string): YandexOAuthSession | null {
+  const key = `${STORAGE_PREFIX}:${state}`;
+  const raw = sessionStorage.getItem(key);
   if (!raw) return null;
-  sessionStorage.removeItem(STORAGE_KEY);
+  sessionStorage.removeItem(key);
   try {
     return JSON.parse(raw) as YandexOAuthSession;
   } catch {
