@@ -109,8 +109,10 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 - **Фаза:** 2 — Авторизация и ЛК.
 - **Авторизация:**
   - email/пароль + 6-значный код верификации ✓
-  - Telegram OIDC (PKCE) ✓ на проде
-  - **VK ID** ✓ на проде с 2026-05-16
+  - Telegram OIDC (PKCE) ✓ на проде. Маршрут до Telegram нестабилен — retry 4×
+    + stale-JWKS-кэш. Egress-прокси — план Б, в проработке (см. журнал 2026-05-16).
+  - **VK ID** ✓ на проде с 2026-05-16. Открытый баг: иногда «Несовпадение state»
+    при логине — в диагностике (см. [[Bugs]]).
   - Яндекс ID — следующим
 - **Auth endpoints:** `POST /api/auth/oauth/{provider}/exchange` (PKCE-flow).
   - Telegram: exchange code → id_token, верификация по JWKS (`telegram_jwks` в Redis на час).
