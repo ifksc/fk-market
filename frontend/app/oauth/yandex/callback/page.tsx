@@ -41,13 +41,9 @@ function Inner() {
       return;
     }
 
-    const session = popYandexOAuthSession();
+    const session = popYandexOAuthSession(state);
     if (!session) {
       setError('Сессия истекла, попробуйте войти ещё раз');
-      return;
-    }
-    if (session.state !== state) {
-      setError('Несовпадение state — возможна попытка CSRF');
       return;
     }
 

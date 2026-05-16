@@ -12,7 +12,10 @@ services:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: 1
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/"]
+      # 127.0.0.1, не localhost: Next.js (server.js) слушает только IPv4
+      # (HOSTNAME=0.0.0.0). BusyBox wget резолвит localhost в IPv6 ::1 первым
+      # → «Connection refused» → контейнер вечно unhealthy при живом фронте.
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1:3000/"]
       interval: 30s
       timeout: 5s
       retries: 3

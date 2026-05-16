@@ -41,13 +41,9 @@ function Inner() {
       return;
     }
 
-    const session = popTelegramOAuthSession();
+    const session = popTelegramOAuthSession(state);
     if (!session) {
       setError('Сессия истекла, попробуйте войти ещё раз');
-      return;
-    }
-    if (session.state !== state) {
-      setError('Несовпадение state — возможна попытка CSRF');
       return;
     }
 
