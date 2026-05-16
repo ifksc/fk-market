@@ -32,6 +32,7 @@ export type ProductsQuery = {
   q?: string;
   min_price?: number;
   max_price?: number;
+  min_rating?: number;
   mode?: 'stock' | 'api' | 'manual';
   sort?: 'popular' | 'price_asc' | 'price_desc' | 'new' | 'rating';
   page?: number;
