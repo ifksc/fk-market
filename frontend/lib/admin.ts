@@ -1041,3 +1041,41 @@ export async function updateAdminUser(
   });
   return r.data;
 }
+
+// ---------- Поддержка (модерация) ----------
+export type AdminSupportTicket = {
+  id: number;
+  kind: 'code_not_working' | 'wrong_item' | 'other';
+  subject: string;
+  body: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'rejected';
+  admin_note: string | null;
+  order_number: string | null;
+  user: { id: number; name: string | null; email: string } | null;
+  created_at: string | null;
+  resolved_at: string | null;
+};
+
+export async function listAdminTickets(
+  query: { status?: string; page?: number; per_page?: number } = {},
+): Promise<Paginated<AdminSupportTicket> & { meta: { open_total?: number } }> {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '' && v !== 'all') params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return adminFetch<Paginated<AdminSupportTicket> & { meta: { open_total?: number } }>(
+    `/admin/support${qs ? `?${qs}` : ''}`,
+  );
+}
+
+export async function updateAdminTicket(
+  id: number,
+  data: { status?: string; admin_note?: string | null },
+): Promise<AdminSupportTicket> {
+  const r = await adminFetch<{ data: AdminSupportTicket }>(`/admin/support/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
