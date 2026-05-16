@@ -27,15 +27,20 @@ class AppServiceProvider extends ServiceProvider
     {
         // ----- API-only поведение для auth-ошибок -----
         // По дефолту Laravel при AuthenticationException редиректит на
-        // route('login') — а в нашем API-only приложении такого роута нет,
-        // поэтому unauthenticated /api/me падал с 500 + Route [login] not defined.
-        // Заставляем рендерить JSON 401 для API-запросов.
+        // route('login') — а в нашем API-only приложении такого роута нет.
+        //
+        // Два слоя защиты:
+        //  1. redirectUsing(null) — Authenticate::redirectTo() больше не зовёт
+        //     route('login'). Без этого RouteNotFoundException падает РАНЬШЕ,
+        //     чем AuthenticationException долетает до renderable-handler'а
+        //     (срабатывало на запросах без заголовка Accept: application/json).
+        //  2. renderable(AuthenticationException) — отдаёт JSON 401.
+        \Illuminate\Auth\Middleware\Authenticate::redirectUsing(fn () => null);
+
         $handler = $this->app->make(ExceptionHandler::class);
         if ($handler instanceof ExceptionHandlerImpl) {
             $handler->renderable(function (AuthenticationException $e, $request) {
-                if ($request->is('api/*') || $request->expectsJson() || $request->wantsJson()) {
-                    return response()->json(['message' => 'Unauthenticated'], 401);
-                }
+                return response()->json(['message' => 'Unauthenticated'], 401);
             });
         }
 
