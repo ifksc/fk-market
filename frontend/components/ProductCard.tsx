@@ -19,7 +19,7 @@ export function ProductCard({ p }: { p: Product }) {
       href={`/products/${p.slug}`}
       className="fk-card bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden block"
     >
-      <div className={`aspect-[4/3] relative ${p.image ? 'bg-slate-100 dark:bg-slate-800' : `bg-gradient-to-br ${grad}`} flex items-center justify-center overflow-hidden`}>
+      <div className={`aspect-[4/3] relative ${p.image ? 'bg-slate-800' : `bg-gradient-to-br ${grad}`} flex items-center justify-center overflow-hidden`}>
         {/* Бейджи */}
         {p.discount_pct > 0 && (
           <span className="absolute top-3 left-3 z-10 px-2 py-1 rounded-md bg-red-500 text-white text-[10px] font-bold">
