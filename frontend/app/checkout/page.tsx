@@ -372,7 +372,7 @@ export default function CheckoutPage() {
               disabled={submitting}
               className="mt-5 w-full h-12 rounded-xl fk-grad-btn font-semibold disabled:opacity-50"
             >
-              {submitting ? 'Создаём заказ…' : 'Оплатить через Freekassa'}
+              {submitting ? 'Создаём заказ…' : 'Оплатить'}
             </button>
             <div className="mt-3 text-center">
               <button
