@@ -14,7 +14,8 @@ export function Footer() {
             <span className="fk-logo font-bold">FK.market</span>
           </div>
           <p className="text-gray-500 dark:text-slate-400">
-            Цифровые товары с автовыдачей. Платежи через FKwallet.
+            Магазин цифровых товаров: ключи, коды и пополнения с автоматической
+            выдачей и гарантией замены.
           </p>
         </div>
         <div>
@@ -43,7 +44,7 @@ export function Footer() {
       <div className="border-t border-gray-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-gray-400 flex items-center justify-between">
           <div>© {new Date().getFullYear()} FK.market · v1.{buildInfo.build}</div>
-          <div>Платежи: Freekassa</div>
+          <div>ТОО «CIT («СИТ»)» · БИН 220440014920</div>
         </div>
       </div>
     </footer>
