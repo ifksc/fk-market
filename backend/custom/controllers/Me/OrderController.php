@@ -129,7 +129,7 @@ class OrderController extends Controller
         ];
 
         if ($withItems) {
-            $base['items'] = $order->items->map(function ($it) {
+            $base['items'] = $order->items->map(function ($it) use ($reviewedProductIds) {
                 $delivered = $it->fulfillment_status === 'delivered';
                 $reviewed = $it->product_id && in_array($it->product_id, $reviewedProductIds, true);
                 return [
