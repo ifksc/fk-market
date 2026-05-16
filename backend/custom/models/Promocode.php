@@ -21,4 +21,44 @@ class Promocode extends Model {
         if ($this->limit_total && $this->used_count >= $this->limit_total) return false;
         return true;
     }
+
+    /**
+     * Подпадает ли товар под ограничения промокода.
+     * Если category_ids и product_ids пусты — промокод без ограничений (true для всех).
+     */
+    public function coversProduct(Product $product): bool
+    {
+        $hasProducts = !empty($this->product_ids);
+        $hasCategories = !empty($this->category_ids);
+        if (!$hasProducts && !$hasCategories) {
+            return true;
+        }
+        if ($hasProducts && in_array($product->id, $this->product_ids)) {
+            return true;
+        }
+        if ($hasCategories && in_array($product->category_id, $this->category_ids)) {
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Скидка для подходящей суммы заказа ($eligibleSubtotal — сумма позиций,
+     * подпадающих под промокод). percent — % с потолком max_discount; fixed — фикс.
+     * Скидка не может превышать саму сумму.
+     */
+    public function discountFor(float $eligibleSubtotal): float
+    {
+        if ($eligibleSubtotal <= 0) {
+            return 0.0;
+        }
+        $discount = $this->type === 'percent'
+            ? $eligibleSubtotal * (float) $this->value / 100
+            : (float) $this->value;
+
+        if ($this->max_discount !== null) {
+            $discount = min($discount, (float) $this->max_discount);
+        }
+        return round(min($discount, $eligibleSubtotal), 2);
+    }
 }
