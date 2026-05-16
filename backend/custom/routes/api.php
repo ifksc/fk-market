@@ -92,6 +92,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('me')->group(function () {
         Route::patch('/', [AuthController::class, 'updateProfile']);
         Route::post('/change-password', [AuthController::class, 'changePassword']);
+        Route::post('/logout-others', [AuthController::class, 'logoutOthers']);
         Route::post('/change-email', [AuthController::class, 'changeEmail']);
         Route::get('/orders', [MeOrderController::class, 'index']);
         Route::get('/orders/{public_number}', [MeOrderController::class, 'show']);

@@ -147,6 +147,25 @@ class AuthController extends Controller
     }
 
     /**
+     * POST /api/me/logout-others
+     * Завершает все сеансы пользователя, кроме текущего — выкидывает чужие
+     * устройства, на которых остался залогиненный аккаунт.
+     */
+    public function logoutOthers(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $currentId = $user->currentAccessToken()?->id;
+        $count = $user->tokens()
+            ->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))
+            ->count();
+        $user->tokens()
+            ->when($currentId, fn ($q) => $q->where('id', '!=', $currentId))
+            ->delete();
+
+        return response()->json(['data' => ['ok' => true, 'revoked' => $count]]);
+    }
+
+    /**
      * POST /api/me/change-password
      * Body: { current_password, password, password_confirmation }
      */
