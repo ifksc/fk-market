@@ -55,6 +55,7 @@ class CategoryController extends Controller
                 'id' => $c->id,
                 'slug' => $c->slug,
                 'name' => $c->name,
+                'description' => $c->description,
                 'icon' => $c->icon,
                 'image_url' => $c->image_url,
                 'parent_id' => $c->parent_id,
