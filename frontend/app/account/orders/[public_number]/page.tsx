@@ -188,6 +188,15 @@ export default function OrderDetailPage() {
           {resentNotice && <span className="text-sm text-gray-500">{resentNotice}</span>}
         </div>
       )}
+
+      <div className="mt-4 text-center">
+        <Link
+          href={`/support?order=${encodeURIComponent(order.public_number)}`}
+          className="text-sm text-gray-500 hover:text-brand-600"
+        >
+          Проблема с заказом? Написать в поддержку →
+        </Link>
+      </div>
     </div>
   );
 }

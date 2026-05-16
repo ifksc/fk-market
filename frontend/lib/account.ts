@@ -92,3 +92,34 @@ export async function submitReview(input: {
 }): Promise<void> {
   await meFetch('/me/reviews', { method: 'POST', body: JSON.stringify(input) });
 }
+
+// ---------- Поддержка ----------
+export type SupportTicket = {
+  id: number;
+  kind: 'code_not_working' | 'wrong_item' | 'other';
+  subject: string;
+  body: string;
+  status: 'open' | 'in_progress' | 'resolved' | 'rejected';
+  admin_note: string | null;
+  order_number: string | null;
+  created_at: string | null;
+  resolved_at: string | null;
+};
+
+export async function listMyTickets(): Promise<SupportTicket[]> {
+  const r = await meFetch<{ data: SupportTicket[] }>('/me/support');
+  return r.data;
+}
+
+export async function createTicket(input: {
+  kind: SupportTicket['kind'];
+  subject: string;
+  body: string;
+  order?: string;
+}): Promise<SupportTicket> {
+  const r = await meFetch<{ data: SupportTicket }>('/me/support', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  return r.data;
+}
