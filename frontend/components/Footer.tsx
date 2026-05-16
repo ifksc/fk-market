@@ -1,5 +1,8 @@
 import Link from 'next/link';
 import { LogoMark } from './Logo';
+// Номер сборки штампуется в build-info.json пайплайном деплоя (GitHub Actions).
+// Локально/в репозитории — дефолт "0".
+import buildInfo from '../build-info.json';
 
 export function Footer() {
   return (
@@ -39,7 +42,7 @@ export function Footer() {
       </div>
       <div className="border-t border-gray-200 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-4 py-4 text-xs text-gray-400 flex items-center justify-between">
-          <div>© {new Date().getFullYear()} FK.market · v1</div>
+          <div>© {new Date().getFullYear()} FK.market · v1.{buildInfo.build}</div>
           <div>Платежи: Freekassa</div>
         </div>
       </div>

@@ -141,6 +141,12 @@ jobs:
           REMOTE
 
       # ---------- FRONTEND ----------
+      # Номер сборки в футер: github.run_number растёт +1 на каждый запуск
+      # workflow → версия v1.N автоматически инкрементится на каждый деплой фронта.
+      - name: Stamp frontend build number
+        if: steps.changes.outputs.frontend == 'true'
+        run: echo '{ "build": "${{ github.run_number }}" }' > frontend/build-info.json
+
       - name: Sync frontend
         if: steps.changes.outputs.frontend == 'true'
         run: |
