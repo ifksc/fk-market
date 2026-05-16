@@ -59,11 +59,12 @@ export function ProductTabs({
 
       {tab === 'desc' && (
         <article className="text-sm text-gray-700 dark:text-slate-300 max-w-none">
-          {shortDescription && <p className="text-base whitespace-pre-line">{shortDescription}</p>}
-          {description && description !== shortDescription && (
-            <p className="mt-4 whitespace-pre-line">{description}</p>
-          )}
-          {!shortDescription && !description && (
+          {/* Показываем только полное описание. short_description у товаров из
+              синхронизации — обрезанная копия начала description, поэтому
+              рендер обоих полей давал дублирование текста. */}
+          {description || shortDescription ? (
+            <p className="text-base whitespace-pre-line">{description || shortDescription}</p>
+          ) : (
             <p className="text-gray-400">Описание не заполнено.</p>
           )}
         </article>
