@@ -179,6 +179,17 @@ export async function changePassword(input: {
   });
 }
 
+/**
+ * Завершить все остальные сеансы (на других устройствах). Текущая сессия
+ * остаётся активной. Возвращает количество отозванных токенов.
+ */
+export async function logoutOtherSessions(): Promise<number> {
+  const r = await authFetch<{ data: { ok: boolean; revoked: number } }>('/me/logout-others', {
+    method: 'POST',
+  });
+  return r.data.revoked;
+}
+
 export async function changeEmailRequest(input: {
   new_email: string;
   password?: string; // не нужен для первого ввода email у OAuth-юзера
