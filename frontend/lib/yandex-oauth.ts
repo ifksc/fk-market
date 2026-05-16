@@ -15,7 +15,11 @@ export type YandexOAuthSession = {
 };
 
 export function getYandexClientId(): string {
-  return process.env.NEXT_PUBLIC_YANDEX_CLIENT_ID ?? '';
+  // client_id Яндекс ID — публичный идентификатор приложения (уходит в
+  // браузерный redirect-URL), не секрет. Зашит как fallback по образцу
+  // getTelegramClientId(), чтобы фронт работал без NEXT_PUBLIC_* на проде.
+  // client_secret в коде НЕ хранится — только в backend .env.
+  return process.env.NEXT_PUBLIC_YANDEX_CLIENT_ID ?? '6c29c4bf2fff41e785b15e92bf7244ff';
 }
 
 export function getRedirectUri(): string {
