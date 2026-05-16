@@ -3,9 +3,10 @@ import Link from 'next/link';
 import { Lock, MessageCircle, RefreshCw, ShieldCheck, Zap } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Гарантии — FK.market',
+  title: 'Гарантии',
   description:
     'Гарантии покупателям FK.market: замена нерабочего товара, быстрая выдача, безопасная оплата и поддержка.',
+  alternates: { canonical: '/guarantees' },
 };
 
 const ITEMS: { icon: React.ReactNode; title: string; text: string }[] = [

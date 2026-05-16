@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { ProductCard } from '@/components/ProductCard';
 import { CatalogFilters, SortSelect } from '@/components/CatalogFilters';
@@ -12,6 +13,48 @@ type SearchParams = {
   max_price?: string;
   min_rating?: string;
 };
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<SearchParams>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+
+  // Страницы поиска не индексируем — это бесконечное пространство URL.
+  if (params.q) {
+    const q = params.q.trim();
+    return {
+      title: `Поиск: ${q}`,
+      description: `Результаты поиска «${q}» в каталоге цифровых товаров FK.market.`,
+      alternates: { canonical: '/catalog' },
+      robots: { index: false },
+    };
+  }
+
+  if (params.category) {
+    try {
+      const cats = await getCategories();
+      const cat = cats.find((c) => c.slug === params.category);
+      if (cat) {
+        return {
+          title: `${cat.name} — купить с моментальной выдачей`,
+          description: `${cat.name} в каталоге FK.market: цифровые товары с автоматической выдачей сразу после оплаты.`,
+          alternates: { canonical: `/catalog?category=${encodeURIComponent(cat.slug)}` },
+        };
+      }
+    } catch {
+      /* категории недоступны — отдадим общий тайтл ниже */
+    }
+  }
+
+  return {
+    title: 'Каталог цифровых товаров',
+    description:
+      'Каталог FK.market: игровые ключи, пополнения Steam, PSN, Xbox, подписки и коды с моментальной выдачей.',
+    alternates: { canonical: '/catalog' },
+  };
+}
 
 export default async function CatalogPage({
   searchParams,

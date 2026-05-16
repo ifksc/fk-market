@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getCategories, getProduct } from '@/lib/api';
@@ -15,6 +16,46 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   accounts: 'from-yellow-500 to-orange-500',
   services: 'from-violet-500 to-fuchsia-500',
 };
+
+// Готовит мета-описание: схлопывает пробелы/переносы и обрезает до ~160 символов.
+function metaDescription(text: string | null | undefined, fallback: string): string {
+  const clean = (text ?? '').replace(/\s+/g, ' ').trim();
+  if (!clean) return fallback;
+  return clean.length > 160 ? `${clean.slice(0, 157).trimEnd()}…` : clean;
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  let product;
+  try {
+    product = await getProduct(slug);
+  } catch {
+    return { title: 'Товар не найден', robots: { index: false } };
+  }
+
+  const priceText = product.price.toLocaleString('ru-RU');
+  const title = `${product.name} — купить за ${priceText} ₽`;
+  const description = metaDescription(
+    product.description || product.short_description,
+    `${product.name} — цифровой товар с моментальной выдачей на FK.market.`,
+  );
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/products/${product.slug}` },
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: product.image ? [product.image] : undefined,
+    },
+  };
+}
 
 export default async function ProductPage({
   params,

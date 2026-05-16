@@ -15,7 +15,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'FK.market — цифровые товары, VPN, ИИ-аккаунты, ключи',
+  title: {
+    default: 'FK.market — цифровые товары, ключи, пополнения с автовыдачей',
+    template: '%s — FK.market',
+  },
   description: 'Маркетплейс цифровых товаров: VPN, скины Steam, ключи игр, ChatGPT Plus, Claude Pro, подписки и услуги. Автовыдача 24/7, оплата картой и СБП.',
   metadataBase: new URL('https://fk.market'),
   icons: { icon: '/favicon.svg' },
@@ -24,6 +27,7 @@ export const metadata: Metadata = {
     description: 'Цифровые товары с автовыдачей',
     type: 'website',
     locale: 'ru_RU',
+    siteName: 'FK.market',
   },
 };
 

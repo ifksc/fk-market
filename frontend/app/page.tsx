@@ -1,7 +1,14 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BadgePercent, Check, ShieldCheck, Shield, Package, Key, PlayCircle, User, Zap, BrainCircuit } from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
 import { getCategories, getProducts } from '@/lib/api';
+
+export const metadata: Metadata = {
+  description:
+    'FK.market — цифровые товары с моментальной выдачей: игровые ключи, пополнения Steam, PSN, Xbox, Telegram Stars, подписки. Оплата картой и СБП, выдача 24/7.',
+  alternates: { canonical: '/' },
+};
 
 const ICON_BY_SLUG: Record<string, React.ComponentType<{ className?: string }>> = {
   ai: BrainCircuit,

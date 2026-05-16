@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Публичная оферта — FK.market',
+  title: 'Публичная оферта',
   description:
     'Публичная оферта на продажу цифровых товаров в интернет-магазине FK.market.',
+  alternates: { canonical: '/legal/oferta' },
 };
 
 export default function OfertaPage() {

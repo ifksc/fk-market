@@ -4,8 +4,9 @@ import { FaqAccordion } from '@/components/FaqAccordion';
 import { getFaq } from '@/lib/api';
 
 export const metadata: Metadata = {
-  title: 'Частые вопросы — FK.market',
+  title: 'Частые вопросы',
   description: 'Ответы на частые вопросы: оплата, выдача товара, возврат и гарантии, аккаунт.',
+  alternates: { canonical: '/faq' },
 };
 
 export default async function FaqPage() {

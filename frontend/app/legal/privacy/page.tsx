@@ -2,9 +2,10 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'Политика конфиденциальности — FK.market',
+  title: 'Политика конфиденциальности',
   description:
     'Политика конфиденциальности FK.market: какие персональные данные обрабатываются, цели, сроки хранения и права пользователя.',
+  alternates: { canonical: '/legal/privacy' },
 };
 
 export default function PrivacyPage() {
