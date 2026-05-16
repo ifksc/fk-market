@@ -103,17 +103,19 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 
 ## Текущий статус
 
-**Обновлено:** 2026-05-15
+**Обновлено:** 2026-05-16
 
 - **Прод:** работает с 2026-05-07. Полный путь покупки end-to-end через Free-Kassa.
 - **Фаза:** 2 — Авторизация и ЛК.
 - **Авторизация:**
   - email/пароль + 6-значный код верификации ✓
   - Telegram OIDC (PKCE) ✓ на проде
-  - **VK ID OIDC** — код готов 2026-05-15, ждёт регистрации приложения в `id.vk.com/business`
+  - **VK ID** ✓ на проде с 2026-05-16
   - Яндекс ID — следующим
-- **Auth endpoints:** `POST /api/auth/oauth/{provider}/exchange` (PKCE-flow, exchange code+verifier на id_token, валидация по JWKS)
-- **JWKS кэш:** Redis на 1 час, ключи `telegram_jwks` / `vk_jwks`
+- **Auth endpoints:** `POST /api/auth/oauth/{provider}/exchange` (PKCE-flow).
+  - Telegram: exchange code → id_token, верификация по JWKS (`telegram_jwks` в Redis на час).
+  - VK: exchange code → access_token → `POST id.vk.com/oauth2/user_info` за профилем
+    (у VK ID нет публичного JWKS — см. [[Журнал решений#2026-05-16]]).
 
 ## Технический долг (приоритет ↓)
 

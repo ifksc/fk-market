@@ -50,7 +50,7 @@ tags: [проект/FK.market, kanban]
 - [ ] Сделать страницу каталога с фильтрами
 - [ ] Сделать карточку товара с TanStack Query
 - [x] Регистрация / логин email + Telegram OIDC
-- [x] OAuth VK ID (код готов, ждёт кредов из id.vk.com/business)
+- [x] OAuth VK ID (на проде с 2026-05-16)
 - [ ] OAuth Яндекс ID
 - [ ] Корзина + оформление
 - [ ] Интеграция FKwallet sandbox
