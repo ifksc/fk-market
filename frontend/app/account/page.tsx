@@ -141,7 +141,7 @@ export default function AccountPage() {
             <Item icon={<ShoppingBag className="w-4 h-4" />} href="/account" label="Обзор" active />
             <Item icon={<Package className="w-4 h-4" />} href="/account/orders" label="Заказы" badge={ordersTotal || undefined} />
             <Item icon={<UserIcon className="w-4 h-4" />} href="/account/profile" label="Профиль" />
-            <Item icon={<HelpCircle className="w-4 h-4" />} href="/account/tickets" label="Поддержка" />
+            <Item icon={<HelpCircle className="w-4 h-4" />} href="/support" label="Поддержка" />
             <Item icon={<Settings className="w-4 h-4" />} href="/account/settings" label="Настройки" />
             <button
               onClick={handleLogout}
