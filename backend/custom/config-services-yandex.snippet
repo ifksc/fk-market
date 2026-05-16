@@ -1,0 +1,21 @@
+// FK.market — Яндекс ID OAuth (OAuth 2.0 + PKCE).
+//
+// Это блок для авторизации через Яндекс ID (oauth.yandex.ru), не для платежей.
+// Добавить эту секцию в src/config/services.php — внутри массива return [...].
+// services.php в репо не лежит (создаётся при setup), поэтому правка вручную.
+//
+// Креды:
+//   - client_id     — ID приложения из кабинета oauth.yandex.ru
+//   - client_secret — «Клиентский секрет» там же
+// Положить в .env: YANDEX_CLIENT_ID, YANDEX_CLIENT_SECRET.
+//
+// В кабинете oauth.yandex.ru:
+//   - Платформа: «Веб-сервисы», Redirect URI: https://fk.market/oauth/yandex/callback
+//   - Доступы (scope): «Доступ к адресу электронной почты» (login:email),
+//     «Доступ к логину, имени и фамилии, полу» (login:info),
+//     «Доступ к портрету пользователя» (login:avatar)
+
+    'yandex' => [
+        'client_id'     => env('YANDEX_CLIENT_ID'),
+        'client_secret' => env('YANDEX_CLIENT_SECRET'),
+    ],

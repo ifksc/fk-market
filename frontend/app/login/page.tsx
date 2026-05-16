@@ -9,6 +9,7 @@ import { useAuth } from '@/components/AuthProvider';
 import { AuthError, login, register } from '@/lib/auth';
 import { startTelegramOAuth } from '@/lib/telegram-oauth';
 import { startVkOAuth } from '@/lib/vk-oauth';
+import { startYandexOAuth } from '@/lib/yandex-oauth';
 
 export default function LoginPage() {
   return (
@@ -32,10 +33,6 @@ function LoginInner() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const oauthClick = (provider: string) => {
-    alert(`OAuth ${provider} — следующий этап.`);
-  };
-
   const onTelegramClick = async () => {
     setError(null);
     setBusy(true);
@@ -56,6 +53,18 @@ function LoginInner() {
       // дальше — редирект на id.vk.com, страница уходит
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Не удалось открыть VK');
+      setBusy(false);
+    }
+  };
+
+  const onYandexClick = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await startYandexOAuth();
+      // дальше — редирект на oauth.yandex.ru, страница уходит
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось открыть Яндекс');
       setBusy(false);
     }
   };
@@ -152,11 +161,15 @@ function LoginInner() {
             </button>
             <button
               type="button"
-              onClick={() => oauthClick('Яндекс')}
-              className="h-11 rounded-xl text-white font-medium flex items-center justify-center gap-2"
+              onClick={onYandexClick}
+              disabled={busy}
+              className="h-11 rounded-xl text-white font-medium flex items-center justify-center gap-2 disabled:opacity-60"
               style={{ background: '#FC3F1D' }}
             >
-              Я
+              <span className="w-5 h-5 rounded-full bg-white text-[#FC3F1D] flex items-center justify-center text-sm font-bold">
+                Я
+              </span>
+              Яндекс
             </button>
           </div>
           <button

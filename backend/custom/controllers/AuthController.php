@@ -759,6 +759,182 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * POST /api/auth/oauth/yandex/exchange
+     *
+     * Яндекс ID OAuth 2.0 + PKCE. Структура та же, что и VK:
+     *   1. Фронт генерирует state и code_verifier, редиректит на oauth.yandex.ru/authorize.
+     *   2. Яндекс возвращает ?code=...&state=... на /oauth/yandex/callback.
+     *   3. Фронт зовёт этот endpoint с code+verifier+redirect_uri.
+     *   4. Мы меняем code на access_token через oauth.yandex.ru/token,
+     *      достаём профиль через login.yandex.ru/info, создаём/находим User,
+     *      выдаём Sanctum-токен.
+     *
+     * Особенности Яндекса по сравнению с VK:
+     *   - чистый OAuth 2.0 без OIDC — id_token не выдаётся, JWKS нет;
+     *     профиль берём через login.yandex.ru/info (как user_info у VK);
+     *   - device_id не нужен;
+     *   - токен в user_info-запросе передаётся заголовком `Authorization: OAuth <token>`.
+     *
+     * Body: { code, code_verifier, redirect_uri }
+     */
+    public function oauthYandexExchange(Request $request): JsonResponse
+    {
+        $input = $request->validate([
+            'code' => ['required', 'string', 'max:1024'],
+            'code_verifier' => ['required', 'string', 'min:43', 'max:128'],
+            'redirect_uri' => ['required', 'url', 'max:255'],
+        ]);
+
+        $clientId = (string) config('services.yandex.client_id');
+        $clientSecret = (string) config('services.yandex.client_secret');
+        if ($clientId === '' || $clientSecret === '') {
+            return response()->json(['message' => 'Яндекс OAuth не настроен'], 503);
+        }
+
+        // 1. Обмен code на access_token (те же fast-fail настройки что у VK/Telegram).
+        try {
+            $resp = Http::asForm()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->retry(3, 800, function ($e) {
+                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                }, throw: false)
+                ->post('https://oauth.yandex.ru/token', [
+                    'grant_type' => 'authorization_code',
+                    'code' => $input['code'],
+                    'code_verifier' => $input['code_verifier'],
+                    'redirect_uri' => $input['redirect_uri'],
+                    'client_id' => $clientId,
+                    'client_secret' => $clientSecret,
+                ]);
+        } catch (\Throwable $e) {
+            Log::warning('Yandex OAuth token exchange failed', ['error' => $e->getMessage()]);
+            return response()
+                ->json(['message' => 'Яндекс временно недоступен, попробуйте ещё раз'], 503)
+                ->header('Retry-After', '5');
+        }
+
+        // Яндекс на невалидный code отдаёт 400 + JSON `{"error": "...", ...}`.
+        if (!$resp->ok() || $resp->json('error')) {
+            Log::warning('Yandex OAuth token error', ['status' => $resp->status(), 'body' => $resp->body()]);
+            return response()->json(['message' => 'Яндекс отверг код входа'], 422);
+        }
+
+        $accessToken = (string) $resp->json('access_token');
+        if ($accessToken === '') {
+            Log::warning('Yandex OAuth missing access_token', ['body' => $resp->body()]);
+            return response()->json(['message' => 'Яндекс не вернул access_token'], 422);
+        }
+
+        // 2. Получаем профиль через login.yandex.ru/info.
+        // У Яндекса нет OIDC id_token — access_token добыт backend-to-backend
+        // по TLS с нашим client_secret, ему можно доверять без JWT-проверки.
+        try {
+            $userResp = Http::withHeaders(['Authorization' => 'OAuth ' . $accessToken])
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->retry(3, 800, function ($e) {
+                    return $e instanceof \Illuminate\Http\Client\ConnectionException;
+                }, throw: false)
+                ->get('https://login.yandex.ru/info', ['format' => 'json']);
+        } catch (\Throwable $e) {
+            Log::warning('Yandex OAuth info failed', ['error' => $e->getMessage()]);
+            return response()
+                ->json(['message' => 'Яндекс временно недоступен, попробуйте ещё раз'], 503)
+                ->header('Retry-After', '5');
+        }
+
+        if (!$userResp->ok() || $userResp->json('error')) {
+            Log::warning('Yandex OAuth info error', ['status' => $userResp->status(), 'body' => $userResp->body()]);
+            return response()->json(['message' => 'Не удалось получить профиль Яндекса'], 422);
+        }
+
+        $ya = (array) $userResp->json();
+
+        // 3. Достаём user-data.
+        $providerUid = (string) ($ya['id'] ?? '');
+        if ($providerUid === '') {
+            Log::warning('Yandex OAuth no id in info', ['body' => $userResp->body()]);
+            return response()->json(['message' => 'Яндекс не вернул id пользователя'], 422);
+        }
+        $email = null;
+        $rawEmail = $ya['default_email'] ?? ($ya['emails'][0] ?? null);
+        if (!empty($rawEmail) && filter_var($rawEmail, FILTER_VALIDATE_EMAIL)) {
+            // Email аккаунта Яндекса подтверждён у провайдера.
+            $email = mb_strtolower((string) $rawEmail);
+        }
+        $displayName = (string) ($ya['display_name'] ?? $ya['real_name'] ?? $ya['login'] ?? '');
+        if ($displayName === '') {
+            $displayName = 'Yandex ' . $providerUid;
+        }
+        $photoUrl = null;
+        if (!empty($ya['default_avatar_id']) && empty($ya['is_avatar_empty'])) {
+            $photoUrl = 'https://avatars.yandex.net/get-yapic/' . $ya['default_avatar_id'] . '/islands-200';
+        }
+
+        // 4. Найти/создать User. Если email с Яндекса уже занят кем-то другим —
+        // привязываем Yandex-identity к существующему юзеру (объединение аккаунтов).
+        $user = DB::transaction(function () use ($providerUid, $displayName, $email, $ya) {
+            $identity = OauthIdentity::where('provider', 'yandex')
+                ->where('provider_uid', $providerUid)
+                ->first();
+
+            if ($identity) {
+                $identity->update(['raw_profile' => $ya]);
+                return $identity->user;
+            }
+
+            $existing = $email ? User::where('email', $email)->first() : null;
+            if ($existing) {
+                OauthIdentity::create([
+                    'user_id' => $existing->id,
+                    'provider' => 'yandex',
+                    'provider_uid' => $providerUid,
+                    'raw_profile' => $ya,
+                ]);
+                if (!$existing->email_verified_at) {
+                    $existing->forceFill(['email_verified_at' => now()])->save();
+                }
+                return $existing;
+            }
+
+            $user = User::create([
+                'email' => $email,
+                'email_verified_at' => $email ? now() : null,
+                'name' => $displayName,
+                'role' => 'customer',
+            ]);
+
+            OauthIdentity::create([
+                'user_id' => $user->id,
+                'provider' => 'yandex',
+                'provider_uid' => $providerUid,
+                'raw_profile' => $ya,
+            ]);
+            return $user;
+        });
+
+        if ($user->is_blocked) {
+            return response()->json(['message' => 'Аккаунт заблокирован'], 403);
+        }
+
+        $token = $this->issueToken($user, $request);
+
+        if ($user->isEmailVerified()) {
+            $this->linkGuestOrders($user);
+        }
+
+        return response()->json([
+            'data' => [
+                'token' => $token,
+                'user' => $this->serializeUser($user->refresh()),
+                'needs_email' => $user->email === null,
+                'photo_url' => $photoUrl,
+            ],
+        ]);
+    }
+
     // ---------- helpers ----------
 
     /**

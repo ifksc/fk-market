@@ -58,6 +58,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
     Route::post('/oauth/telegram/exchange', [AuthController::class, 'oauthTelegramExchange']);
     Route::post('/oauth/vk/exchange', [AuthController::class, 'oauthVkExchange']);
+    Route::post('/oauth/yandex/exchange', [AuthController::class, 'oauthYandexExchange']);
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
