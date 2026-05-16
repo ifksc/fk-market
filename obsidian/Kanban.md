@@ -90,10 +90,21 @@ tags: [проект/FK.market, kanban]
 - [ ] Первая реальная продажа
 
 
+## 🛒 Фаза 5 (мультивендорность, v2)
+
+- [ ] Регистрация продавцов + верификация
+- [ ] Кабинет продавца (свои товары, статистика, загрузка ключей)
+- [ ] Модерация товаров перед публикацией
+- [ ] Расчёт комиссии платформы
+- [ ] Эскроу (деньги продавцу после подтверждения)
+- [ ] Выплаты продавцам через FKwallet Payout API
+- [ ] Рейтинг и отзывы на продавцов
+
+
 
 
 %% kanban:settings
 ```
-{"kanban-plugin":"board","list-collapse":[false,false,false,false,false,false]}
+{"kanban-plugin":"board","list-collapse":[false,false,false,false,false,false,false]}
 ```
 %%
