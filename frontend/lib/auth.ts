@@ -222,3 +222,19 @@ export async function oauthVkExchange(input: {
   setUserToken(r.data.token);
   return r.data;
 }
+
+// ---------- OAuth (Яндекс ID) ----------
+export async function oauthYandexExchange(input: {
+  code: string;
+  code_verifier: string;
+  redirect_uri: string;
+}): Promise<{ token: string; user: AuthUser; needs_email: boolean; photo_url?: string | null }> {
+  const r = await authFetch<{
+    data: { token: string; user: AuthUser; needs_email: boolean; photo_url?: string | null };
+  }>('/auth/oauth/yandex/exchange', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+  setUserToken(r.data.token);
+  return r.data;
+}
