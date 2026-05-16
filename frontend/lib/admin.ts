@@ -970,3 +970,25 @@ export async function updateAdminPromocode(id: number, data: AdminPromocodeInput
 export async function deleteAdminPromocode(id: number): Promise<void> {
   await adminFetch(`/admin/promocodes/${id}`, { method: 'DELETE' });
 }
+
+// ---------- Дашборд ----------
+export type DashboardStats = {
+  period: string;
+  revenue: number;
+  orders: number;
+  avg_check: number;
+  margin: number;
+  revenue_today: number;
+  orders_today: number;
+  products_total: number;
+  by_status: Record<string, number>;
+  chart: Array<{ date: string; revenue: number }>;
+  top_products: Array<{ id: number; name: string; sales_count: number }>;
+  low_stock: Array<{ id: number; name: string; stock: number }>;
+  payment_methods: Array<{ method: string; orders: number; revenue: number }>;
+};
+
+export async function getDashboardStats(period = '30d'): Promise<DashboardStats> {
+  const r = await adminFetch<{ data: DashboardStats }>(`/admin/dashboard?period=${encodeURIComponent(period)}`);
+  return r.data;
+}

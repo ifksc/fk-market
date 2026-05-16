@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\Admin\AuthController as AdminAuth;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategory;
+use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Api\Admin\OrderController as AdminOrder;
 use App\Http\Controllers\Api\Admin\PaymentMethodController as AdminPaymentMethod;
 use App\Http\Controllers\Api\Admin\PricingController as AdminPricing;
@@ -92,6 +93,8 @@ Route::post('/admin/login', [AdminAuth::class, 'login']);
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/me', [AdminAuth::class, 'me']);
     Route::post('/logout', [AdminAuth::class, 'logout']);
+
+    Route::get('/dashboard', [AdminDashboard::class, 'stats']);
 
     Route::get('/categories', [AdminCategory::class, 'index']);
     Route::post('/categories', [AdminCategory::class, 'store']);
