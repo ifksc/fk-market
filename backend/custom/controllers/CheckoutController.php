@@ -171,7 +171,7 @@ class CheckoutController extends Controller
         // Режим (sci/api) теперь у каждого PaymentMethod свой. По умолчанию sci.
         $integrationMode = $paymentMethod?->integration_mode ?: 'sci';
         $paymentUrl = $fk->makePaymentUrl($order, $payload['email'], $paymentMethod?->fk_id, $integrationMode);
-        $payment = $fk->recordPendingPayment($order, $paymentUrl);
+        $payment = $fk->recordPendingPayment($order, $paymentUrl, $paymentMethod?->code);
 
         $order->update(['payment_id' => $payment->id]);
 

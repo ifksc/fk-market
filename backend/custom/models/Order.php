@@ -21,5 +21,8 @@ class Order extends Model {
     public function items(): HasMany { return $this->hasMany(OrderItem::class); }
     public function payments(): HasMany { return $this->hasMany(Payment::class); }
 
+    /** Канонический платёж заказа (orders.payment_id). Используется вебхуком. */
+    public function payment(): BelongsTo { return $this->belongsTo(Payment::class); }
+
     public function getRouteKeyName(): string { return 'public_number'; }
 }

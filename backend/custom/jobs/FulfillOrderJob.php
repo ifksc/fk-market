@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Mail\OrderDeliveredMail;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Product;
 use App\Models\StockItem;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -45,6 +46,14 @@ class FulfillOrderJob implements ShouldQueue
         }
 
         $order->update(['status' => 'fulfilling']);
+
+        // Учитываем продажи: оплаченный заказ = продажа. Делается один раз —
+        // повторный заход job'а отсекается охранником status !== 'paid' выше.
+        foreach ($order->items as $item) {
+            if ($item->product_id) {
+                Product::whereKey($item->product_id)->increment('sales_count', $item->qty);
+            }
+        }
 
         foreach ($order->items as $item) {
             try {
