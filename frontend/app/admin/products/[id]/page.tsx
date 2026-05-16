@@ -16,6 +16,7 @@ import {
   type AdminProductDetail,
   type AdminProductInput,
 } from '@/lib/admin';
+import { ProductFaqBlock } from '@/components/admin/ProductFaqBlock';
 
 export default function AdminProductDetailPage() {
   const router = useRouter();
@@ -234,6 +235,8 @@ export default function AdminProductDetailPage() {
               </select>
             </Field>
           </Card>
+
+          <ProductFaqBlock productId={product.id} />
         </section>
 
         {/* Боковая панель */}

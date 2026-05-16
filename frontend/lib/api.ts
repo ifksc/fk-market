@@ -54,6 +54,17 @@ export async function getProduct(slug: string): Promise<ProductDetail> {
   return r.data;
 }
 
+// ---------- FAQ ----------
+export type FaqGroup = {
+  category: string;
+  items: Array<{ id: number; question: string; answer: string }>;
+};
+
+export async function getFaq(): Promise<FaqGroup[]> {
+  const r = await apiFetch<ApiResponse<FaqGroup[]>>('/faq');
+  return r.data;
+}
+
 // ---------- Способы оплаты ----------
 export type PaymentMethodPublic = {
   code: string;

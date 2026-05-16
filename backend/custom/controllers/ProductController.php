@@ -63,7 +63,12 @@ class ProductController extends Controller
     /** GET /api/products/{slug} */
     public function show(Product $product): JsonResponse
     {
-        $product->load(['category:id,slug,name,icon', 'images', 'reviews.user:id,name']);
+        $product->load([
+            'category:id,slug,name,icon',
+            'images',
+            'reviews.user:id,name',
+            'faqItems' => fn ($q) => $q->where('is_active', true)->orderBy('sort')->orderBy('id'),
+        ]);
 
         return response()->json([
             'data' => array_merge($this->transform($product), [
@@ -75,6 +80,11 @@ class ProductController extends Controller
                     'text' => $r->text,
                     'author' => $r->user?->name ?? 'Покупатель',
                     'created_at' => $r->created_at?->toIso8601String(),
+                ]),
+                'faq' => $product->faqItems->map(fn ($f) => [
+                    'id' => $f->id,
+                    'question' => $f->question,
+                    'answer' => $f->answer,
                 ]),
             ]),
         ]);
