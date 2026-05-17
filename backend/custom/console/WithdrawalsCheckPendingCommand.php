@@ -2,11 +2,14 @@
 
 namespace App\Console\Commands;
 
+use App\Mail\OrderDeliveredMail;
 use App\Models\FulfillmentTask;
 use App\Models\OrderItem;
 use App\Models\Provider;
 use App\Services\Providers\FkwalletProductsGateway;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 /**
  * php artisan withdrawals:check-pending {--timeout=30}
@@ -89,6 +92,7 @@ class WithdrawalsCheckPendingCommand extends Command
                 $order = $item->order;
                 if ($order && $order->items()->where('fulfillment_status', '!=', 'delivered')->doesntExist()) {
                     $order->update(['status' => 'completed', 'completed_at' => now()]);
+                    $this->sendDeliveredMail($order);
                 }
                 $this->info("  #{$item->id} ✓ delivered (FK status={$status})");
                 return;
@@ -131,5 +135,18 @@ class WithdrawalsCheckPendingCommand extends Command
             ],
         );
         $item->update(['fulfillment_status' => 'queued']);
+    }
+
+    /** Письмо покупателю с кодами — заказ дозабит кроном. */
+    protected function sendDeliveredMail(\App\Models\Order $order): void
+    {
+        try {
+            Mail::to($order->email)->send(new OrderDeliveredMail($order->id));
+        } catch (\Throwable $e) {
+            Log::error('OrderDeliveredMail из крона не отправлено', [
+                'order_id' => $order->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
