@@ -24,7 +24,8 @@ class BlogController extends Controller
             $q->whereJsonContains('tags', $tag);
         }
 
-        $posts = $q->paginate(10);
+        // per_page переопределяется (sitemap тянет все статьи разом).
+        $posts = $q->paginate($request->integer('per_page', 10));
 
         return response()->json([
             'data' => $posts->getCollection()->map(fn (BlogPost $p) => $this->card($p)),
@@ -70,6 +71,7 @@ class BlogController extends Controller
             'author' => $p->author,
             'tags' => $p->tags ?? [],
             'published_at' => $p->published_at?->toIso8601String(),
+            'updated_at' => $p->updated_at?->toIso8601String(),
         ];
     }
 }

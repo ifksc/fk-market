@@ -75,11 +75,12 @@ export async function getProduct(slug: string): Promise<ProductDetail> {
 
 // ---------- Блог ----------
 export async function getBlogPosts(
-  query: { tag?: string; page?: number } = {},
+  query: { tag?: string; page?: number; per_page?: number } = {},
 ): Promise<Paginated<BlogPostCard>> {
   const params = new URLSearchParams();
   if (query.tag) params.set('tag', query.tag);
   if (query.page) params.set('page', String(query.page));
+  if (query.per_page) params.set('per_page', String(query.per_page));
   const qs = params.toString();
   return apiFetch<Paginated<BlogPostCard>>(`/blog${qs ? `?${qs}` : ''}`);
 }

@@ -116,6 +116,7 @@ export type BlogPostCard = {
   author: string | null;
   tags: string[];
   published_at: string | null;
+  updated_at: string | null;
 };
 
 /** Полная статья — страница /blog/[slug]. */
