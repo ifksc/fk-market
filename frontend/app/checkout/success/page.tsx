@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { Check, Copy, Loader2, ShoppingBag } from 'lucide-react';
 import { getOrderStatus, type OrderStatus } from '@/lib/api';
 import { useCart } from '@/lib/cart';
@@ -31,7 +31,8 @@ function SuccessPageSkeleton() {
 function CheckoutSuccessContent() {
   const sp = useSearchParams();
   const queryOrder = sp.get('order') ?? sp.get('MERCHANT_ORDER_ID') ?? null;
-  const { clear } = useCart();
+  const { clear, hydrated } = useCart();
+  const clearedRef = useRef(false);
 
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
   const [buyerEmail, setBuyerEmail] = useState<string | null>(null);
@@ -47,6 +48,17 @@ function CheckoutSuccessContent() {
     setOrderNumber(queryOrder ?? stored);
     setBuyerEmail(typeof window !== 'undefined' ? localStorage.getItem('fk-last-email') : null);
   }, [queryOrder]);
+
+  // Корзину чистим, как только узнали номер заказа: попадание на
+  // /checkout/success означает, что заказ оформлен. Ждём hydrated — иначе
+  // гидрация CartProvider из localStorage перезатёрла бы очистку. Ref —
+  // чтобы выполнить строго один раз.
+  useEffect(() => {
+    if (hydrated && orderNumber && !clearedRef.current) {
+      clearedRef.current = true;
+      clear();
+    }
+  }, [hydrated, orderNumber, clear]);
 
   // Polling: ждём пока вебхук от FKwallet поменяет статус на paid
   useEffect(() => {
@@ -69,7 +81,6 @@ function CheckoutSuccessContent() {
 
         if (result.status === 'completed' || result.status === 'paid') {
           setLoading(false);
-          clear(); // очищаем корзину после успеха
           localStorage.removeItem('fk-last-order');
           return;
         }
@@ -96,7 +107,7 @@ function CheckoutSuccessContent() {
     return () => {
       cancelled = true;
     };
-  }, [orderNumber, clear]);
+  }, [orderNumber]);
 
   const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text);

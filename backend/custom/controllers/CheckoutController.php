@@ -104,7 +104,7 @@ class CheckoutController extends Controller
                 fn ($i) => ['product' => $i['product'], 'qty' => $i['qty'], 'total' => $i['total']],
                 $resolvedItems,
             );
-            $promoResult = $promocodes->evaluate($payload['promocode'], $lines, $request->user()?->id);
+            $promoResult = $promocodes->evaluate($payload['promocode'], $lines, $request->user('sanctum')?->id);
             if (!$promoResult['ok']) {
                 return response()->json(['error' => $promoResult['message'] ?? 'Промокод недействителен'], 422);
             }
@@ -118,7 +118,10 @@ class CheckoutController extends Controller
         $order = DB::transaction(function () use ($payload, $resolvedItems, $subtotal, $discount, $promocode, $publicNumber, $request) {
             $order = Order::create([
                 'public_number' => $publicNumber,
-                'user_id' => $request->user()?->id,
+                // user('sanctum') явно — у /checkout нет auth:sanctum в группе,
+                // поэтому дефолтный guard токен не резолвит. Без этого заказ
+                // авторизованного покупателя терял user_id и не попадал в ЛК.
+                'user_id' => $request->user('sanctum')?->id,
                 'email' => $payload['email'],
                 'phone' => $payload['phone'] ?? null,
                 'currency' => 'RUB',

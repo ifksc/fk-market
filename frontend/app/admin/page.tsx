@@ -30,6 +30,8 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Выбранный столбик графика — показываем по нему выручку и кол-во продаж.
+  const [selectedDay, setSelectedDay] = useState<DashboardStats['chart'][number] | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -94,16 +96,32 @@ export default function AdminDashboardPage() {
         {/* График + статусы */}
         <section className="grid lg:grid-cols-[1.6fr_1fr] gap-4">
           <div className={`${card} p-5`}>
-            <div className="font-bold text-sm mb-4">Выручка по дням — 30 дней</div>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <span className="font-bold text-sm">Выручка по дням — 30 дней</span>
+              {selectedDay ? (
+                <span className="text-xs text-slate-400">
+                  {selectedDay.date}:{' '}
+                  <b className="text-fuchsia-400">{money(selectedDay.revenue)}</b>
+                  {' · '}
+                  {selectedDay.orders} продаж
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500">Кликните по столбику</span>
+              )}
+            </div>
             {stats && (
               <>
                 <div className="flex items-end gap-1 h-40">
                   {stats.chart.map((c) => (
-                    <div
+                    <button
                       key={c.date}
-                      className="flex-1 rounded-t bg-gradient-to-b from-fuchsia-500 to-brand-600 min-h-[3px]"
+                      type="button"
+                      onClick={() => setSelectedDay(c)}
+                      className={`flex-1 p-0 rounded-t bg-gradient-to-b from-fuchsia-500 to-brand-600 min-h-[3px] cursor-pointer hover:opacity-80 ${
+                        selectedDay?.date === c.date ? 'ring-2 ring-fuchsia-300' : ''
+                      }`}
                       style={{ height: `${(c.revenue / chartMax) * 100}%` }}
-                      title={`${c.date}: ${money(c.revenue)}`}
+                      title={`${c.date}: ${money(c.revenue)} · ${c.orders} продаж`}
                     />
                   ))}
                 </div>
