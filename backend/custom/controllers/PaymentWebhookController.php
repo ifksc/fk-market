@@ -33,28 +33,24 @@ class PaymentWebhookController extends Controller
             return response('YES');
         }
 
-        // Определяем реальный IP клиента. Сервер за Cloudflare → request->ip() даст
-        // адрес CF, поэтому смотрим заголовки в порядке надёжности.
-        $clientIp = $request->header('CF-Connecting-IP')
-            ?? $request->header('X-Real-IP')
-            ?? trim(explode(',', (string) $request->header('X-Forwarded-For', ''))[0])
-            ?: $request->ip();
+        // Реальный IP клиента DDoS-Guard передаёт в заголовке DDG-Connecting-IP.
+        // Это доверенный источник: X-Real-IP и X-Forwarded-For подделываются
+        // (см. документацию DDoS-Guard), для проверок безопасности не годятся.
+        $clientIp = $request->header('DDG-Connecting-IP');
 
         Log::info('Freekassa webhook received', [
-            'client_ip' => $clientIp,
-            'remote_ip' => $request->ip(),
+            'client_ip' => $clientIp ?? $request->ip(),
             'data' => self::safeLogData($data),
         ]);
 
-        // 0. IP whitelist — FK ходит с конкретных адресов.
-        if (!$fk->isAllowedWebhookIp($clientIp)) {
+        // 0. IP whitelist — FK ходит с конкретных адресов. Проверяем только при
+        //    наличии доверенного заголовка; если его нет (запрос мимо DDoS-Guard
+        //    или смена инфраструктуры) — не блокируем, заказ всё равно защищён
+        //    MD5-подписью. Origin при этом должен быть закрыт фаерволом на
+        //    диапазоны DDoS-Guard.
+        if ($clientIp !== null && !$fk->isAllowedWebhookIp($clientIp)) {
             Log::warning('Freekassa webhook from disallowed IP', [
                 'client_ip' => $clientIp,
-                'headers' => [
-                    'cf-connecting-ip' => $request->header('CF-Connecting-IP'),
-                    'x-real-ip' => $request->header('X-Real-IP'),
-                    'x-forwarded-for' => $request->header('X-Forwarded-For'),
-                ],
             ]);
             return response('disallowed', 403);
         }
