@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Provider;
 use App\Models\ProviderProduct;
 use App\Models\ProviderSyncRun;
+use App\Services\CategorySlug;
 use App\Services\Providers\FkwalletProductsGateway;
 use App\Services\Providers\MediaDownloader;
 use App\Services\Providers\ProductGrouper;
@@ -259,26 +260,32 @@ class ProvidersSyncCommand extends Command
             if (!$extId) continue;
 
             $name = $c['name_ru'] ?? $c['name'] ?? ('FK #' . $extId);
-            // Уникальный slug: префикс "fk-" + external id (даже если у FK совпадут slug-и, у нас не сломается)
-            $slug = 'fk-' . $extId;
 
             // Картинка категории, если FK отдаёт (поля могут называться image / logo / icon)
             $imageRemote = $c['image'] ?? $c['logo'] ?? $c['icon'] ?? null;
             $imageLocal = is_string($imageRemote) ? $downloader->download($imageRemote, 'fkwallet/categories') : null;
+            $imageUrl = $imageLocal ?? (is_string($imageRemote) ? $imageRemote : null);
 
-            $cat = Category::updateOrCreate(
-                [
-                    'provider_id' => $providerId,
-                    'provider_external_id' => (string) $extId,
-                ],
-                array_filter([
-                    'slug' => $slug,
-                    'name' => $name,
-                    'image_url' => $imageLocal ?? (is_string($imageRemote) ? $imageRemote : null),
-                    'sort_order' => $sortIdx++,
-                    'is_active' => true,
-                ], fn ($v) => $v !== null),
-            );
+            $cat = Category::firstOrNew([
+                'provider_id' => $providerId,
+                'provider_external_id' => (string) $extId,
+            ]);
+
+            // slug ставим только при создании — у существующих категорий он
+            // стабилен (мог быть переименован в читаемый ЧПУ). Это же не даёт
+            // синхронизации затирать slug на каждом прогоне.
+            if (!$cat->exists) {
+                $cat->slug = CategorySlug::make($name);
+            }
+
+            $cat->name = $name;
+            if ($imageUrl !== null) {
+                $cat->image_url = $imageUrl;
+            }
+            $cat->sort_order = $sortIdx++;
+            $cat->is_active = true;
+            $cat->save();
+
             $externalToLocal[$extId] = $cat->id;
         }
 

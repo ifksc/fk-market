@@ -4,11 +4,11 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Services\CategorySlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
 /**
@@ -223,13 +223,6 @@ class CategoryController extends Controller
 
     private function generateSlug(string $name): string
     {
-        $base = Str::slug($name);
-        if ($base === '') $base = 'cat-' . Str::random(6);
-        $slug = $base;
-        $i = 2;
-        while (Category::where('slug', $slug)->exists()) {
-            $slug = $base . '-' . $i++;
-        }
-        return $slug;
+        return CategorySlug::make($name);
     }
 }

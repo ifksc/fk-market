@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { notFound } from 'next/navigation';
+import { notFound, permanentRedirect } from 'next/navigation';
 import { CatalogView } from '@/components/CatalogView';
 import { getCategories } from '@/lib/api';
 
@@ -44,9 +44,18 @@ export default async function CategoryPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const sp = await searchParams;
 
-  // Несуществующая категория — 404.
   const categories = await getCategories();
-  if (!categories.some((c) => c.slug === slug)) {
+  const bySlug = categories.find((c) => c.slug === slug);
+
+  // Запрос пришёл по старому slug (fk-11) — 301 на новый ЧПУ.
+  if (!bySlug) {
+    const byLegacy = categories.find((c) => c.legacy_slug === slug);
+    if (byLegacy) {
+      const qs = new URLSearchParams(
+        Object.entries(sp).filter((e): e is [string, string] => Boolean(e[1])),
+      ).toString();
+      permanentRedirect(`/catalog/${byLegacy.slug}${qs ? `?${qs}` : ''}`);
+    }
     notFound();
   }
 

@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\DB;
 class Category extends Model {
     protected $fillable = [
         'parent_id','provider_id','provider_external_id',
-        'slug','name','description','icon','image_url','sort_order',
+        'slug','legacy_slug','name','description','icon','image_url','sort_order',
         'is_active','show_in_header','is_new',
     ];
     protected $casts = [
