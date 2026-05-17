@@ -9,6 +9,11 @@ import { ProductGallery } from '@/components/ProductGallery';
 import { ProductTabs } from '@/components/ProductTabs';
 import { FaqAccordion } from '@/components/FaqAccordion';
 
+// ISR: страница товара кэшируется и перегенерируется не чаще раза в 2 минуты.
+// Снимает SSR-нагрузку (рендер из кэша), новые товары рендерятся on-demand.
+// Цена/остаток могут отставать до 120с — для цифрового магазина приемлемо.
+export const revalidate = 120;
+
 const CATEGORY_GRADIENTS: Record<string, string> = {
   ai: 'from-brand-500 via-fuchsia-500 to-pink-500',
   vpn: 'from-indigo-500 to-blue-600',
