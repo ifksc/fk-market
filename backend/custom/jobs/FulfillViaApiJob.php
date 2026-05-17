@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\Log;
  * Поток:
  *   1. Validate (бесплатная проверка возможности)
  *   2. Create → если coupon_code сразу пришёл, готово
- *   3. Иначе — polling /status с backoff (5/10/20/40/60/60/60/60/60 сек, ~5.5 мин)
+ *   3. Иначе — короткий polling /status (~60 сек), дальше добивает cron op:check-pending
  *   4. coupon_code → пишем в order_item.delivered_payload, ставим delivered
  *   5. Любая ошибка → fallback в manual (если включён) или failed
  *
@@ -141,7 +141,9 @@ class FulfillViaApiJob implements ShouldQueue
 
     protected function pollUntilDone(ProviderGateway $gw, int $providerOrderId, OrderItem $item, FulfillmentTask $task): void
     {
-        $delays = [5, 10, 20, 40, 60, 60, 60, 60, 60]; // ~5.5 мин суммарно
+        // ~60 секунд: ловим быструю выдачу, не занимая воркер надолго. Если
+        // поставщик не успел — позицию добьёт cron op:check-pending (каждую минуту).
+        $delays = [5, 10, 15, 30];
         foreach ($delays as $delay) {
             sleep($delay);
             $status = $gw->getStatus($providerOrderId);
@@ -164,8 +166,8 @@ class FulfillViaApiJob implements ShouldQueue
             }
             // pending — продолжаем polling
         }
-        // Timeout не считаем фатальным — отдадим заказ на дополнение через cron op:check-pending.
-        throw new \RuntimeException('Polling timeout: 5+ минут без финального статуса (будет добит cron op:check-pending)');
+        // Timeout не считаем фатальным — позицию добьёт cron op:check-pending.
+        throw new \RuntimeException('Polling timeout: ~60с без финального статуса (будет добит cron op:check-pending)');
     }
 
     /** Возвращает 'success' | 'failed' | 'pending'. */
