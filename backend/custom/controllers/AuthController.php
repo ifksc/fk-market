@@ -725,26 +725,26 @@ class AuthController extends Controller
                 return $identity->user;
             }
 
-            // Сначала пробуем привязать к юзеру с тем же email.
+            // Привязываем к существующему аккаунту по email только если у того
+            // email уже подтверждён. Иначе чужой неподтверждённый аккаунт можно
+            // было бы захватить, заведя OAuth с его адресом.
             $existing = $email ? User::where('email', $email)->first() : null;
-            if ($existing) {
+            if ($existing && $existing->email_verified_at) {
                 OauthIdentity::create([
                     'user_id' => $existing->id,
                     'provider' => 'vk',
                     'provider_uid' => $providerUid,
                     'raw_profile' => $vk,
                 ]);
-                // VK подтвердил email на своей стороне — отметим у нас тоже,
-                // если ещё не отмечен.
-                if (!$existing->email_verified_at) {
-                    $existing->forceFill(['email_verified_at' => now()])->save();
-                }
                 return $existing;
             }
 
+            // Email конфликтует с неподтверждённым аккаунтом — не забираем чужой
+            // адрес: создаём OAuth-аккаунт без email (юзер укажет свой сам).
+            $ownEmail = $existing ? null : $email;
             $user = User::create([
-                'email' => $email,
-                'email_verified_at' => $email ? now() : null,
+                'email' => $ownEmail,
+                'email_verified_at' => $ownEmail ? now() : null,
                 'name' => $displayName,
                 'role' => 'customer',
             ]);
@@ -904,23 +904,24 @@ class AuthController extends Controller
                 return $identity->user;
             }
 
+            // Привязка по email — только к аккаунту с уже подтверждённым email
+            // (защита от захвата чужого неподтверждённого аккаунта).
             $existing = $email ? User::where('email', $email)->first() : null;
-            if ($existing) {
+            if ($existing && $existing->email_verified_at) {
                 OauthIdentity::create([
                     'user_id' => $existing->id,
                     'provider' => 'yandex',
                     'provider_uid' => $providerUid,
                     'raw_profile' => $ya,
                 ]);
-                if (!$existing->email_verified_at) {
-                    $existing->forceFill(['email_verified_at' => now()])->save();
-                }
                 return $existing;
             }
 
+            // Email занят неподтверждённым аккаунтом — не забираем чужой адрес.
+            $ownEmail = $existing ? null : $email;
             $user = User::create([
-                'email' => $email,
-                'email_verified_at' => $email ? now() : null,
+                'email' => $ownEmail,
+                'email_verified_at' => $ownEmail ? now() : null,
                 'name' => $displayName,
                 'role' => 'customer',
             ]);
