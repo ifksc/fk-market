@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Plus, Star } from 'lucide-react';
 import type { Product } from '@/lib/types';
@@ -27,12 +28,12 @@ export function ProductCard({ p }: { p: Product }) {
           </span>
         )}
         {p.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={p.image}
             alt={p.name}
-            loading="lazy"
-            className="w-full h-full object-contain"
+            fill
+            sizes="(max-width: 768px) 50vw, (max-width: 1280px) 33vw, 25vw"
+            className="object-contain"
           />
         ) : (
           <div className="text-white/80 text-2xl font-bold tracking-wide">
