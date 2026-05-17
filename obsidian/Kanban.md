@@ -84,10 +84,10 @@ tags: [проект/FK.market, kanban]
 - [x] SSL-сертификат Let's Encrypt
 - [x] Production `.env` с реальными ключами
 - [x] CI/CD — GitHub Actions деплой
-- [ ] HSTS-заголовок
+- [x] HSTS-заголовок
 - [ ] Ежедневный mysqldump + выгрузка в S3
 - [ ] Мониторинг ошибок (Sentry)
-- [ ] Нагрузочный тест
+- [x] Нагрузочный тест
 - [x] Первая реальная продажа
 
 
