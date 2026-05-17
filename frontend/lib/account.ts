@@ -2,8 +2,7 @@
 // Использует тот же токен, что и lib/auth.ts.
 
 import { AuthError, getUserToken } from './auth';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://fk.market/api';
+import { API_URL } from './config';
 
 export type MyOrderSummary = {
   public_number: string;

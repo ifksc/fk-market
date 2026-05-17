@@ -1,7 +1,6 @@
 // FK.market — клиент к нашему Laravel API
+import { API_URL } from './config';
 import type { ApiResponse, Category, Paginated, Product, ProductDetail } from './types';
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://fk.market/api';
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
