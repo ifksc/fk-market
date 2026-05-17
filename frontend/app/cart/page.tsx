@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus, ShieldCheck, Trash2, Zap } from 'lucide-react';
@@ -78,10 +79,11 @@ export default function CartPage() {
                 className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-4"
               >
                 {item.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <Image
                     src={item.image}
                     alt={item.name}
+                    width={80}
+                    height={80}
                     className="w-20 h-20 rounded-xl object-cover bg-slate-100 dark:bg-slate-800 shrink-0"
                   />
                 ) : (
@@ -108,6 +110,7 @@ export default function CartPage() {
                   <div className="mt-2 flex items-center gap-3 text-sm">
                     <div className="flex items-center border border-gray-200 dark:border-slate-800 rounded-lg overflow-hidden">
                       <button
+                        aria-label="Уменьшить количество"
                         onClick={() => setQty(item.product_id, item.qty - 1)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800"
                       >
@@ -115,6 +118,7 @@ export default function CartPage() {
                       </button>
                       <span className="w-10 text-center">{item.qty}</span>
                       <button
+                        aria-label="Увеличить количество"
                         onClick={() => setQty(item.product_id, item.qty + 1)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800"
                       >

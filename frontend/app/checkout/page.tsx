@@ -183,6 +183,7 @@ export default function CheckoutPage() {
             <div className="grid md:grid-cols-2 gap-3">
               <input
                 type="email"
+                aria-label="Email"
                 placeholder="Email *"
                 required
                 value={email}
@@ -191,6 +192,7 @@ export default function CheckoutPage() {
               />
               <input
                 type="tel"
+                aria-label="Телефон"
                 placeholder="Телефон (не обязательно)"
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
