@@ -166,8 +166,14 @@ class FulfillViaApiJob implements ShouldQueue
             }
             // pending — продолжаем polling
         }
-        // Timeout не считаем фатальным — позицию добьёт cron op:check-pending.
-        throw new \RuntimeException('Polling timeout: ~60с без финального статуса (будет добит cron op:check-pending)');
+        // Timeout — НЕ ошибка и НЕ повод для ручной выдачи. Позиция остаётся
+        // in_progress с provider_order_id — её штатно дозабьёт cron
+        // op:check-pending. Исключение здесь бросать нельзя: его поймает
+        // catch в handle() и ошибочно уведёт товар в ручную очередь («API упал»).
+        Log::info('FulfillViaApiJob: polling timeout — оставляем cron op:check-pending', [
+            'order_item_id' => $item->id,
+            'provider_order_id' => $providerOrderId,
+        ]);
     }
 
     /** Возвращает 'success' | 'failed' | 'pending'. */
