@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getCategories, getProduct } from '@/lib/api';
+import { JsonLd } from '@/components/JsonLd';
 import { ProductBuyBox } from '@/components/ProductBuyBox';
 import { ProductCard } from '@/components/ProductCard';
 import { ProductGallery } from '@/components/ProductGallery';
@@ -231,14 +232,8 @@ export default async function ProductPage({
         </section>
       )}
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }}
-      />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
-      />
+      <JsonLd data={productLd} />
+      <JsonLd data={breadcrumbLd} />
     </div>
   );
 }

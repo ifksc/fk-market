@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { JsonLd } from '@/components/JsonLd';
 import { ProductCard } from '@/components/ProductCard';
 import { CatalogFilters, SortSelect } from '@/components/CatalogFilters';
 import { getCategories, getProducts, type ProductsQuery } from '@/lib/api';
@@ -287,18 +288,8 @@ export async function CatalogView(props: CatalogViewProps) {
         </div>
       </div>
 
-      {breadcrumbLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
-        />
-      )}
-      {collectionLd && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
-        />
-      )}
+      {breadcrumbLd && <JsonLd data={breadcrumbLd} />}
+      {collectionLd && <JsonLd data={collectionLd} />}
     </div>
   );
 }
