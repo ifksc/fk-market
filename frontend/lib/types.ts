@@ -78,6 +78,7 @@ export type ProductDetail = Product & {
     question: string;
     answer: string;
   }>;
+  related: Product[];
 };
 
 export type Paginated<T> = {

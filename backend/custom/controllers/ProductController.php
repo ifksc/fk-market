@@ -86,8 +86,43 @@ class ProductController extends Controller
                     'question' => $f->question,
                     'answer' => $f->answer,
                 ]),
+                'related' => $this->relatedProducts($product)
+                    ->map(fn ($p) => $this->transform($p))
+                    ->values(),
             ]),
         ]);
+    }
+
+    /**
+     * Похожие товары — для блока внутренней перелинковки на странице товара.
+     * Берём активные товары из «соседних» категорий (с тем же родителем; если
+     * категория верхнего уровня — из её подкатегорий), кроме самого товара.
+     */
+    private function relatedProducts(Product $product): \Illuminate\Support\Collection
+    {
+        $cat = $product->category;
+        if (!$cat) {
+            return collect();
+        }
+
+        $catIds = Category::query()
+            ->when(
+                $cat->parent_id,
+                fn ($q) => $q->where('parent_id', $cat->parent_id),
+                fn ($q) => $q->where('parent_id', $cat->id),
+            )
+            ->pluck('id')
+            ->push($cat->id)
+            ->unique();
+
+        return Product::query()
+            ->active()
+            ->whereIn('category_id', $catIds)
+            ->where('id', '!=', $product->id)
+            ->orderByDesc('sales_count')
+            ->limit(8)
+            ->with(['category:id,slug,name,icon', 'images'])
+            ->get();
     }
 
     private function transform(Product $p): array
