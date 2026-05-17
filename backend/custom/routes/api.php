@@ -53,7 +53,7 @@ Route::get('/payment-methods', [\App\Http\Controllers\Api\PaymentMethodControlle
 // Общий FAQ
 Route::get('/faq', [FaqController::class, 'index']);
 
-Route::post('/checkout', CheckoutController::class);
+Route::post('/checkout', CheckoutController::class)->middleware('throttle:20,1');
 // Превью скидки по промокоду на чекауте (до создания заказа)
 Route::post('/promocode/check', [PromocodeController::class, 'check']);
 // Обращение в поддержку от гостя (по номеру заказа + email), с rate-limit
@@ -69,13 +69,13 @@ Route::get('/payments/fkwallet/check', [PaymentWebhookController::class, 'check'
 
 // ---------- Авторизация (общий для покупателей и админов) ----------
 Route::prefix('auth')->group(function () {
-    Route::post('/register', [AuthController::class, 'register']);
+    Route::post('/register', [AuthController::class, 'register'])->middleware('throttle:20,1');
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-    Route::post('/oauth/telegram/exchange', [AuthController::class, 'oauthTelegramExchange']);
-    Route::post('/oauth/vk/exchange', [AuthController::class, 'oauthVkExchange']);
-    Route::post('/oauth/yandex/exchange', [AuthController::class, 'oauthYandexExchange']);
+    Route::post('/oauth/telegram/exchange', [AuthController::class, 'oauthTelegramExchange'])->middleware('throttle:20,1');
+    Route::post('/oauth/vk/exchange', [AuthController::class, 'oauthVkExchange'])->middleware('throttle:20,1');
+    Route::post('/oauth/yandex/exchange', [AuthController::class, 'oauthYandexExchange'])->middleware('throttle:20,1');
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
