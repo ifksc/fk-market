@@ -8,7 +8,8 @@ export type AdminUser = {
   id: number;
   name: string | null;
   email: string;
-  role: 'admin';
+  // journalist — урезанная роль: доступ только к разделу «Блог».
+  role: 'admin' | 'journalist';
 };
 
 export type AdminProductListItem = {
@@ -1145,4 +1146,102 @@ export async function syncProductFaq(productId: number, faqItemIds: number[]): P
     body: JSON.stringify({ faq_item_ids: faqItemIds }),
   });
   return r.data;
+}
+
+// ---------- Блог ----------
+export type AdminBlogFaqItem = { question: string; answer: string };
+
+export type AdminBlogPost = {
+  id: number;
+  slug: string;
+  title: string;
+  meta_description: string | null;
+  excerpt: string | null;
+  content: string | null;
+  cover_image: string | null;
+  author: string | null;
+  tags: string[];
+  related_products: string[];
+  related_posts: string[];
+  faq: AdminBlogFaqItem[];
+  status: 'draft' | 'published';
+  published_at: string | null;
+  telegram_posted_at: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
+export type AdminBlogInput = Partial<{
+  title: string;
+  slug: string;
+  meta_description: string | null;
+  excerpt: string | null;
+  content: string | null;
+  cover_image: string | null;
+  author: string | null;
+  tags: string[];
+  related_products: string[];
+  related_posts: string[];
+  faq: AdminBlogFaqItem[];
+  status: 'draft' | 'published';
+}>;
+
+export async function listAdminBlog(): Promise<AdminBlogPost[]> {
+  const r = await adminFetch<{ data: AdminBlogPost[] }>('/admin/blog');
+  return r.data;
+}
+
+export async function getAdminBlogPost(id: number): Promise<AdminBlogPost> {
+  const r = await adminFetch<{ data: AdminBlogPost }>(`/admin/blog/${id}`);
+  return r.data;
+}
+
+export async function createAdminBlogPost(data: AdminBlogInput): Promise<AdminBlogPost> {
+  const r = await adminFetch<{ data: AdminBlogPost }>('/admin/blog', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
+
+export async function updateAdminBlogPost(id: number, data: AdminBlogInput): Promise<AdminBlogPost> {
+  const r = await adminFetch<{ data: AdminBlogPost }>(`/admin/blog/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+  return r.data;
+}
+
+export async function deleteAdminBlogPost(id: number): Promise<void> {
+  await adminFetch(`/admin/blog/${id}`, { method: 'DELETE' });
+}
+
+/**
+ * Загрузка обложки статьи. multipart/form-data — поэтому не через adminFetch
+ * (там жёстко Content-Type: application/json).
+ */
+export async function uploadAdminBlogCover(id: number, file: File): Promise<AdminBlogPost> {
+  const token = getAdminToken();
+  const form = new FormData();
+  form.append('image', file);
+
+  const res = await fetch(`${API_URL}/admin/blog/${id}/cover`, {
+    method: 'POST',
+    body: form,
+    headers: {
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: 'no-store',
+  });
+  if (res.status === 401) {
+    clearAdminToken();
+    throw new AdminUnauthorizedError();
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Upload failed → ${res.status}: ${text.slice(0, 200)}`);
+  }
+  const json = (await res.json()) as { data: AdminBlogPost };
+  return json.data;
 }

@@ -1,6 +1,14 @@
 // FK.market — клиент к нашему Laravel API
 import { API_URL } from './config';
-import type { ApiResponse, Category, Paginated, Product, ProductDetail } from './types';
+import type {
+  ApiResponse,
+  BlogPostCard,
+  BlogPostFull,
+  Category,
+  Paginated,
+  Product,
+  ProductDetail,
+} from './types';
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -61,6 +69,22 @@ export async function getProducts(query: ProductsQuery = {}): Promise<Paginated<
 // ---------- Карточка товара ----------
 export async function getProduct(slug: string): Promise<ProductDetail> {
   const r = await apiFetch<ApiResponse<ProductDetail>>(`/products/${slug}`);
+  return r.data;
+}
+
+// ---------- Блог ----------
+export async function getBlogPosts(
+  query: { tag?: string; page?: number } = {},
+): Promise<Paginated<BlogPostCard>> {
+  const params = new URLSearchParams();
+  if (query.tag) params.set('tag', query.tag);
+  if (query.page) params.set('page', String(query.page));
+  const qs = params.toString();
+  return apiFetch<Paginated<BlogPostCard>>(`/blog${qs ? `?${qs}` : ''}`);
+}
+
+export async function getBlogPost(slug: string): Promise<BlogPostFull> {
+  const r = await apiFetch<ApiResponse<BlogPostFull>>(`/blog/${encodeURIComponent(slug)}`);
   return r.data;
 }
 
