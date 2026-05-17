@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Services\FreekassaGateway;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -42,7 +43,7 @@ class PaymentWebhookController extends Controller
         Log::info('Freekassa webhook received', [
             'client_ip' => $clientIp,
             'remote_ip' => $request->ip(),
-            'data' => $data,
+            'data' => self::safeLogData($data),
         ]);
 
         // 0. IP whitelist — FK ходит с конкретных адресов.
@@ -84,37 +85,63 @@ class PaymentWebhookController extends Controller
             return response('amount mismatch', 400);
         }
 
-        // 4. Идемпотентность: если уже paid — отвечаем YES без повторных действий
+        // 4. Идемпотентность (быстрый путь): большинство ретраев FK прилетает
+        //    уже на оплаченный заказ — отвечаем YES без открытия транзакции.
         if ($order->status === 'paid' || $order->status === 'completed') {
             return response('YES');
         }
 
-        // 5. Меняем статус и создаём задачу выдачи
-        $order->update([
-            'status' => 'paid',
-            'paid_at' => now(),
-        ]);
+        // 5. Перевод в paid + обновление платежа — в транзакции с блокировкой
+        //    строки заказа. Защита от двойной выдачи при параллельных ретраях
+        //    вебхука: только один вызов реально переведёт заказ в paid.
+        $justPaid = DB::transaction(function () use ($order, $data) {
+            $locked = Order::whereKey($order->id)->lockForUpdate()->first();
+            if (!$locked || $locked->status === 'paid' || $locked->status === 'completed') {
+                return false;
+            }
 
-        // Канонический платёж заказа. Раньше тут было $order->payment без связи
-        // payment() в модели — блок молча пропускался, платёж не обновлялся.
-        $payment = $order->payment ?? $order->payments()->latest('id')->first();
-        if ($payment) {
-            $payment->update([
+            $locked->update([
                 'status' => 'paid',
                 'paid_at' => now(),
-                'provider_payment_id' => (string) ($data['intid'] ?? null),
-                // Не затираем способ, выбранный покупателем на чекауте;
-                // detectMethod — только fallback, если он не был сохранён.
-                'method' => $payment->method ?: self::detectMethod($data),
-                'raw_response' => $data,
             ]);
-        }
 
-        // 6. Запускаем выдачу в очереди
-        FulfillOrderJob::dispatch($order->id);
+            // Канонический платёж заказа. Раньше тут было $order->payment без связи
+            // payment() в модели — блок молча пропускался, платёж не обновлялся.
+            $payment = $locked->payment ?? $locked->payments()->latest('id')->first();
+            if ($payment) {
+                $payment->update([
+                    'status' => 'paid',
+                    'paid_at' => now(),
+                    'provider_payment_id' => (string) ($data['intid'] ?? null),
+                    // Не затираем способ, выбранный покупателем на чекауте;
+                    // detectMethod — только fallback, если он не был сохранён.
+                    'method' => $payment->method ?: self::detectMethod($data),
+                    'raw_response' => $data,
+                ]);
+            }
+
+            return true;
+        });
+
+        // 6. Запускаем выдачу только если именно этот вызов перевёл заказ в paid.
+        if ($justPaid) {
+            FulfillOrderJob::dispatch($order->id);
+        }
 
         // FK требует ответ "YES" чтобы пометить заказ оплаченным у себя
         return response('YES');
+    }
+
+    /** Безопасный для логов срез вебхука — без подписи и персональных данных. */
+    private static function safeLogData(array $data): array
+    {
+        $safe = [];
+        foreach (['MERCHANT_ID', 'MERCHANT_ORDER_ID', 'AMOUNT', 'intid', 'CUR_ID'] as $k) {
+            if (isset($data[$k])) {
+                $safe[$k] = $data[$k];
+            }
+        }
+        return $safe;
     }
 
     /**

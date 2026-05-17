@@ -155,10 +155,9 @@ class FreekassaGateway
 
         $expected = md5("{$merchantId}:{$amount}:{$this->secretWord2}:{$orderId}");
         if (!hash_equals($expected, $sign)) {
+            // Не логируем сами подписи и payload — это утечка в журналы.
             Log::warning('Freekassa webhook: bad signature', [
-                'expected' => $expected,
-                'got' => $sign,
-                'data' => $data,
+                'order_id' => $orderId,
             ]);
             return false;
         }
