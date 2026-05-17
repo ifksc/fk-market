@@ -126,6 +126,30 @@ export default async function CatalogPage({
   // пере-инициализировалось, если фильтры поменялись извне (кнопка «назад» и т.п.)
   const filterKey = `${params.min_price ?? ''}|${params.max_price ?? ''}|${params.min_rating ?? ''}`;
 
+  // Микроразметка хлебных крошек — только на странице конкретной категории.
+  const breadcrumbLd = activeCat
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Главная', item: 'https://fk.market/' },
+          { '@type': 'ListItem', position: 2, name: 'Каталог', item: 'https://fk.market/catalog' },
+          ...ancestors.map((a, i) => ({
+            '@type': 'ListItem',
+            position: i + 3,
+            name: a.name,
+            item: `https://fk.market/catalog?category=${encodeURIComponent(a.slug)}`,
+          })),
+          {
+            '@type': 'ListItem',
+            position: ancestors.length + 3,
+            name: activeCat.name,
+            item: `https://fk.market/catalog?category=${encodeURIComponent(activeCat.slug)}`,
+          },
+        ],
+      }
+    : null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Хлебные крошки */}
@@ -267,6 +291,13 @@ export default async function CatalogPage({
           )}
         </div>
       </div>
+
+      {breadcrumbLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        />
+      )}
     </div>
   );
 }

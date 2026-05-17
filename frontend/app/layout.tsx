@@ -29,6 +29,11 @@ export const metadata: Metadata = {
     locale: 'ru_RU',
     siteName: 'FK.market',
   },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'FK.market',
+    description: 'Цифровые товары с автовыдачей',
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

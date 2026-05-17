@@ -55,6 +55,12 @@ export async function generateMetadata({
       type: 'website',
       images: product.image ? [product.image] : undefined,
     },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: product.image ? [product.image] : undefined,
+    },
   };
 }
 
