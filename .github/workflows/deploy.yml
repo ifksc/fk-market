@@ -149,7 +149,9 @@ jobs:
       - name: Sync frontend
         if: steps.changes.outputs.frontend == 'true'
         run: |
-          rsync -avz \
+          # --delete: удалённые в репо файлы убираются и на сервере, иначе
+          # они остаются в build-контексте Docker (как было с loading.tsx).
+          rsync -avz --delete \
             --exclude='node_modules' \
             --exclude='.next' \
             --exclude='out' \
