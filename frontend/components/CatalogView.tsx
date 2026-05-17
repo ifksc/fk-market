@@ -148,6 +148,11 @@ export async function CatalogView(props: CatalogViewProps) {
         '@context': 'https://schema.org',
         '@type': 'CollectionPage',
         name: activeCat.name,
+        // description + url — для корректного CollectionPage в rich snippets.
+        description:
+          (activeCat.description ?? '').replace(/\s+/g, ' ').trim() ||
+          `${activeCat.name} в каталоге FK.market: цифровые товары с автоматической выдачей сразу после оплаты.`,
+        url: `${SITE}/catalog/${activeCat.slug}`,
         mainEntity: {
           '@type': 'ItemList',
           numberOfItems: productsPage.data.length,

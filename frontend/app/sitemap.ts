@@ -29,7 +29,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       .filter((c) => c.products_count > 0)
       .map((c): SitemapEntry => ({
         url: `${SITE}/catalog/${c.slug}`,
-        lastModified: now,
+        // Реальная дата изменения категории — иначе одинаковый lastmod на
+        // всех URL поисковики игнорируют (нет приоритизации перекраулинга).
+        lastModified: c.updated_at ? new Date(c.updated_at) : now,
         changeFrequency: 'weekly',
         priority: 0.7,
       }));
@@ -44,7 +46,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const page = await getProducts({ per_page: 1000 });
     products = page.data.map((p): SitemapEntry => ({
       url: `${SITE}/products/${p.slug}`,
-      lastModified: now,
+      // Реальная дата изменения товара (цена/описание/остаток).
+      lastModified: p.updated_at ? new Date(p.updated_at) : now,
       changeFrequency: 'weekly',
       priority: 0.8,
       // Обложка товара — для индексации в поиске по картинкам.
