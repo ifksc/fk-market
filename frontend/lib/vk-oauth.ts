@@ -18,7 +18,10 @@ export type VkOAuthSession = {
 };
 
 export function getVkClientId(): string {
-  return process.env.NEXT_PUBLIC_VK_CLIENT_ID ?? '';
+  // ID VK ID-приложения — публичный (виден в браузере при OAuth). Зашитый
+  // fallback, как у Яндекса/Telegram: NEXT_PUBLIC_* запекаются на сборке,
+  // и без явного env приложение иначе остаётся несконфигурированным.
+  return process.env.NEXT_PUBLIC_VK_CLIENT_ID ?? '54594048';
 }
 
 export function getRedirectUri(): string {
