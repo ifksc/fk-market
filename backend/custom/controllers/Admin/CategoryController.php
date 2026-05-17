@@ -169,7 +169,8 @@ class CategoryController extends Controller
     public function uploadImage(Request $request, Category $category): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'image', 'max:5120'], // до 5 МБ
+            // Только растровые форматы (до 5 МБ) — SVG исключён (может содержать скрипт).
+            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
         ]);
 
         $file = $request->file('image');

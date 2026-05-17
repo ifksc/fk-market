@@ -139,7 +139,8 @@ class ProductController extends Controller
     public function uploadImage(Request $request, Product $product): JsonResponse
     {
         $request->validate([
-            'image' => ['required', 'file', 'image', 'max:5120'],
+            // Только растровые форматы — SVG исключён (может содержать скрипт).
+            'image' => ['required', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:5120'],
             'is_primary' => ['nullable', 'boolean'],
         ]);
         $file = $request->file('image');
