@@ -15,6 +15,7 @@ const ROLE_LABEL: Record<string, string> = {
   admin: 'Админ',
   seller: 'Продавец',
   moderator: 'Модератор',
+  journalist: 'Журналист',
 };
 
 const ROLE_COLOR: Record<string, string> = {
@@ -22,6 +23,7 @@ const ROLE_COLOR: Record<string, string> = {
   admin: 'bg-brand-500/15 text-brand-600',
   seller: 'bg-emerald-500/15 text-emerald-600',
   moderator: 'bg-amber-500/15 text-amber-600',
+  journalist: 'bg-fuchsia-500/15 text-fuchsia-600',
 };
 
 export default function AdminUsersPage() {
@@ -82,6 +84,7 @@ export default function AdminUsersPage() {
             <option value="admin">Админы</option>
             <option value="seller">Продавцы</option>
             <option value="moderator">Модераторы</option>
+            <option value="journalist">Журналисты</option>
           </select>
 
           <select

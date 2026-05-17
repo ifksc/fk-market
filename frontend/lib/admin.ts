@@ -176,7 +176,7 @@ export type AdminUserDetail = AdminUserListItem & {
 
 export type AdminUsersQuery = {
   q?: string;
-  role?: 'customer' | 'admin' | 'seller' | 'moderator';
+  role?: 'customer' | 'admin' | 'seller' | 'moderator' | 'journalist';
   sort?: 'created_desc' | 'created_asc' | 'email' | 'orders_desc' | 'spent_desc';
   page?: number;
   per_page?: number;
