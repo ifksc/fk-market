@@ -17,6 +17,20 @@ export type CatalogViewProps = {
   min_rating?: string;
 };
 
+/** Номера страниц для пагинации: 1, текущая ±2, последняя; разрывы — '…'. */
+function pageWindow(current: number, last: number): (number | '…')[] {
+  const wanted = new Set<number>([1, last, current - 2, current - 1, current, current + 1, current + 2]);
+  const sorted = [...wanted].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  let prev = 0;
+  for (const p of sorted) {
+    if (p - prev > 1) out.push('…');
+    out.push(p);
+    prev = p;
+  }
+  return out;
+}
+
 /**
  * Содержимое каталога. Используется и страницей /catalog (общий каталог,
  * поиск), и страницей /catalog/[slug] (категория с ЧПУ). Категория приходит
@@ -261,19 +275,25 @@ export async function CatalogView(props: CatalogViewProps) {
                     ‹
                   </Link>
                 )}
-                {Array.from({ length: productsPage.meta.last_page }, (_, i) => i + 1).map((page) => (
-                  <Link
-                    key={page}
-                    href={pageUrl(page)}
-                    className={`w-9 h-9 flex items-center justify-center rounded-lg ${
-                      page === productsPage.meta.current_page
-                        ? 'fk-grad-btn'
-                        : 'border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900'
-                    }`}
-                  >
-                    {page}
-                  </Link>
-                ))}
+                {pageWindow(productsPage.meta.current_page, productsPage.meta.last_page).map((page, idx) =>
+                  page === '…' ? (
+                    <span key={`gap-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400">
+                      …
+                    </span>
+                  ) : (
+                    <Link
+                      key={page}
+                      href={pageUrl(page)}
+                      className={`w-9 h-9 flex items-center justify-center rounded-lg ${
+                        page === productsPage.meta.current_page
+                          ? 'fk-grad-btn'
+                          : 'border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900'
+                      }`}
+                    >
+                      {page}
+                    </Link>
+                  ),
+                )}
                 {productsPage.meta.current_page < productsPage.meta.last_page && (
                   <Link
                     href={pageUrl(productsPage.meta.current_page + 1)}
