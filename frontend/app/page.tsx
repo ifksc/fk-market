@@ -9,6 +9,7 @@ export const metadata: Metadata = {
   description:
     'FK.market — цифровые товары с моментальной выдачей: игровые ключи, пополнения Steam, PSN, Xbox, Telegram Stars, подписки. Оплата картой и СБП, выдача 24/7.',
   alternates: { canonical: '/' },
+  openGraph: { url: '/' },
 };
 
 const ICON_BY_SLUG: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -79,7 +80,8 @@ export default async function HomePage() {
                 {popularPage.meta.total.toLocaleString('ru')} товаров · мгновенная выдача 24/7
               </div>
               <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
-                Игры Steam, валюты<br />
+                Игры Steam, валюты{' '}
+                <br />
                 и подписки —{' '}
                 <span className="fk-logo">мгновенно</span>
               </h1>

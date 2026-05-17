@@ -43,10 +43,12 @@ export async function generateMetadata({
         const description = ownDesc
           ? (ownDesc.length > 160 ? `${ownDesc.slice(0, 157).trimEnd()}…` : ownDesc)
           : `${cat.name} в каталоге FK.market: цифровые товары с автоматической выдачей сразу после оплаты.`;
+        const canonical = `/catalog?category=${encodeURIComponent(cat.slug)}`;
         return {
           title: `${cat.name} — купить с моментальной выдачей`,
           description,
-          alternates: { canonical: `/catalog?category=${encodeURIComponent(cat.slug)}` },
+          alternates: { canonical },
+          openGraph: { url: canonical },
         };
       }
     } catch {
@@ -59,6 +61,7 @@ export async function generateMetadata({
     description:
       'Каталог FK.market: игровые ключи, пополнения Steam, PSN, Xbox, подписки и коды с моментальной выдачей.',
     alternates: { canonical: '/catalog' },
+    openGraph: { url: '/catalog' },
   };
 }
 
@@ -147,6 +150,25 @@ export default async function CatalogPage({
             item: `https://fk.market/catalog?category=${encodeURIComponent(activeCat.slug)}`,
           },
         ],
+      }
+    : null;
+
+  // Микроразметка списка товаров категории.
+  const collectionLd = activeCat
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'CollectionPage',
+        name: activeCat.name,
+        mainEntity: {
+          '@type': 'ItemList',
+          numberOfItems: productsPage.data.length,
+          itemListElement: productsPage.data.map((p, i) => ({
+            '@type': 'ListItem',
+            position: i + 1,
+            url: `https://fk.market/products/${p.slug}`,
+            name: p.name,
+          })),
+        },
       }
     : null;
 
@@ -296,6 +318,12 @@ export default async function CatalogPage({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }}
+        />
+      )}
+      {collectionLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionLd) }}
         />
       )}
     </div>
