@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\Admin\AuthController as AdminAuth;
+use App\Http\Controllers\Api\Admin\BlogController as AdminBlog;
 use App\Http\Controllers\Api\Admin\CategoryController as AdminCategory;
 use App\Http\Controllers\Api\Admin\DashboardController as AdminDashboard;
 use App\Http\Controllers\Api\Admin\FaqController as AdminFaq;
@@ -18,6 +19,7 @@ use App\Http\Controllers\Api\Admin\SettingController as AdminSetting;
 use App\Http\Controllers\Api\Admin\StockController as AdminStock;
 use App\Http\Controllers\Api\Admin\UserController as AdminUser;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\BlogController;
 use App\Http\Controllers\Api\Me\OrderController as MeOrderController;
 use App\Http\Controllers\Api\Me\ReviewController as MeReviewController;
 use App\Http\Controllers\Api\Me\SupportController as MeSupportController;
@@ -28,6 +30,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\PromocodeController;
 use App\Http\Controllers\Api\SupportController;
+use App\Http\Middleware\EnsureBlogManagerMiddleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -52,6 +55,12 @@ Route::get('/payment-methods', [\App\Http\Controllers\Api\PaymentMethodControlle
 
 // Общий FAQ
 Route::get('/faq', [FaqController::class, 'index']);
+
+// Блог — публичные статьи
+Route::prefix('blog')->group(function () {
+    Route::get('/', [BlogController::class, 'index']);
+    Route::get('/{slug}', [BlogController::class, 'show']);
+});
 
 Route::post('/checkout', CheckoutController::class)->middleware('throttle:20,1');
 // Превью скидки по промокоду на чекауте (до создания заказа)
@@ -107,10 +116,22 @@ Route::middleware('auth:sanctum')->group(function () {
 // ---------- Админка ----------
 Route::post('/admin/login', [AdminAuth::class, 'login']);
 
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+// Доступно admin + journalist: профиль, логаут и весь раздел «Блог».
+// Журналист управляет только блогом — остальная админка ниже под 'admin'.
+Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/me', [AdminAuth::class, 'me']);
     Route::post('/logout', [AdminAuth::class, 'logout']);
 
+    Route::get('/blog', [AdminBlog::class, 'index']);
+    Route::post('/blog', [AdminBlog::class, 'store']);
+    Route::get('/blog/{post:id}', [AdminBlog::class, 'show']);
+    Route::put('/blog/{post:id}', [AdminBlog::class, 'update']);
+    Route::delete('/blog/{post:id}', [AdminBlog::class, 'destroy']);
+    Route::post('/blog/{post:id}/cover', [AdminBlog::class, 'uploadCover']);
+});
+
+// Только admin — вся остальная админка.
+Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminDashboard::class, 'stats']);
 
     Route::get('/categories', [AdminCategory::class, 'index']);

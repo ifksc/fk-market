@@ -39,7 +39,9 @@ class AuthController extends Controller
             return response()->json(['message' => 'Invalid credentials'], 422);
         }
 
-        if ($user->role !== 'admin') {
+        // В админку пускаем администраторов и журналистов (журналист —
+        // только в раздел «Блог», это разграничивается на уровне роутов).
+        if (!in_array($user->role, ['admin', 'journalist'], true)) {
             return response()->json(['message' => 'Admin access required'], 403);
         }
 
@@ -48,7 +50,7 @@ class AuthController extends Controller
         // Удаляем предыдущие токены этого устройства, создаём новый
         $deviceName = $request->userAgent() ?: 'admin';
         $user->tokens()->where('name', $deviceName)->delete();
-        $token = $user->createToken($deviceName, ['admin']);
+        $token = $user->createToken($deviceName, [$user->role]);
 
         $user->update(['last_login_at' => now()]);
 
