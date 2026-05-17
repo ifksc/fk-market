@@ -40,18 +40,25 @@ class FulfillOrderJob implements ShouldQueue
             return;
         }
 
-        if ($order->status !== 'paid') {
-            Log::info('FulfillOrderJob: not paid yet', ['order_id' => $order->id, 'status' => $order->status]);
+        // Выдаём оплаченные и уже выдаваемые заказы (последнее — чтобы refulfill
+        // и ретраи дорабатывали невыданные позиции).
+        if (!in_array($order->status, ['paid', 'fulfilling'], true)) {
+            Log::info('FulfillOrderJob: заказ не в состоянии выдачи', ['order_id' => $order->id, 'status' => $order->status]);
             return;
         }
 
-        $order->update(['status' => 'fulfilling']);
+        // Переход paid→fulfilling атомарно: продажи учитываем только если именно
+        // этот проход выиграл переход. Защита от двойного счёта sales_count при
+        // повторном запуске job'а или refulfill.
+        $claimedSale = Order::whereKey($order->id)
+            ->where('status', 'paid')
+            ->update(['status' => 'fulfilling']) === 1;
 
-        // Учитываем продажи: оплаченный заказ = продажа. Делается один раз —
-        // повторный заход job'а отсекается охранником status !== 'paid' выше.
-        foreach ($order->items as $item) {
-            if ($item->product_id) {
-                Product::whereKey($item->product_id)->increment('sales_count', $item->qty);
+        if ($claimedSale) {
+            foreach ($order->items as $item) {
+                if ($item->product_id) {
+                    Product::whereKey($item->product_id)->increment('sales_count', $item->qty);
+                }
             }
         }
 
@@ -83,6 +90,12 @@ class FulfillOrderJob implements ShouldQueue
 
     private function fulfillItem(OrderItem $item): void
     {
+        // Уже выданную позицию не трогаем — иначе повторный запуск или refulfill
+        // спишет ещё один ключ со склада и перезапишет delivered_payload.
+        if ($item->fulfillment_status === 'delivered') {
+            return;
+        }
+
         $product = $item->product;
         if (!$product) return;
 
@@ -127,6 +140,13 @@ class FulfillOrderJob implements ShouldQueue
                 'fulfillment_status' => 'delivered',
                 'delivered_at' => now(),
             ]);
+
+            // Пересчитываем кэш остатка: stock_available должен соответствовать
+            // реальному числу непроданных ключей.
+            $remaining = StockItem::where('product_id', $item->product_id)
+                ->where('is_sold', false)
+                ->count();
+            Product::whereKey($item->product_id)->update(['stock_available' => $remaining]);
         });
     }
 
