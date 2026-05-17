@@ -94,7 +94,10 @@ export default async function BlogPostPage({ params }: Props) {
     const fetched = await Promise.all(
       post.related_posts.slice(0, 3).map((s) => getBlogPost(s).catch(() => null)),
     );
-    relatedPosts = fetched.filter((p): p is BlogPostFull => p !== null);
+    // Саму статью в «Читайте также» не показываем (если slug попал в список).
+    relatedPosts = fetched.filter(
+      (p): p is BlogPostFull => p !== null && p.slug !== post.slug,
+    );
   }
 
   // Микроразметка статьи + хлебных крошек (+ FAQPage при наличии вопросов).
