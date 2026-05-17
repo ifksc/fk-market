@@ -112,6 +112,11 @@ class OrderController extends Controller
 
     public function refund(Order $order): JsonResponse
     {
+        // Возврат имеет смысл только для оплаченных заказов; pending денег не
+        // содержит, cancelled/refunded уже финальны.
+        if (!in_array($order->status, ['paid', 'fulfilling', 'completed'], true)) {
+            return response()->json(['message' => "Нельзя оформить возврат для заказа со статусом {$order->status}"], 422);
+        }
         $order->update(['status' => 'refunded']);
         if ($order->payment) {
             $order->payment->update(['status' => 'refunded']);
