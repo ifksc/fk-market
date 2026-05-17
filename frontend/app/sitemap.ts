@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { getCategories, getProducts } from '@/lib/api';
+import { getBlogPosts, getCategories, getProducts } from '@/lib/api';
 
 const SITE = 'https://fk.market';
 
@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: `${SITE}/`, lastModified: now, changeFrequency: 'daily', priority: 1 },
     { url: `${SITE}/catalog`, lastModified: now, changeFrequency: 'daily', priority: 0.9 },
+    { url: `${SITE}/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.7 },
     { url: `${SITE}/faq`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${SITE}/guarantees`, lastModified: now, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${SITE}/support`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
@@ -57,5 +58,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     products = [];
   }
 
-  return [...staticPages, ...categories, ...products];
+  let blog: MetadataRoute.Sitemap = [];
+  try {
+    // per_page=1000 — все опубликованные статьи разом (блог небольшой).
+    const page = await getBlogPosts({ per_page: 1000 });
+    blog = page.data.map((p): SitemapEntry => ({
+      url: `${SITE}/blog/${p.slug}`,
+      lastModified: p.updated_at
+        ? new Date(p.updated_at)
+        : p.published_at
+          ? new Date(p.published_at)
+          : now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+    }));
+  } catch {
+    blog = [];
+  }
+
+  return [...staticPages, ...categories, ...products, ...blog];
 }
