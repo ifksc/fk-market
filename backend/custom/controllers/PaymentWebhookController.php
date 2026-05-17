@@ -152,16 +152,24 @@ class PaymentWebhookController extends Controller
     {
         $data = $request->validate([
             'order' => ['required', 'string', 'max:32'],
+            'email' => ['nullable', 'email', 'max:190'],
         ]);
 
-        $order = Order::where('public_number', $data['order'])->firstOrFail();
+        $order = Order::with('items.product')
+            ->where('public_number', $data['order'])
+            ->firstOrFail();
+
+        // Сам товар (коды/ключи) отдаём только при совпадении email — это
+        // подтверждение владения заказом. Статус заказа не секрет — он нужен
+        // success-странице для опроса и отдаётся всегда.
+        $ownsOrder = !empty($data['email'])
+            && mb_strtolower((string) $data['email']) === mb_strtolower((string) $order->email);
 
         return response()->json([
             'data' => [
                 'public_number' => $order->public_number,
                 'status' => $order->status,
                 'total' => (float) $order->total,
-                'email' => $order->email,
                 'paid_at' => $order->paid_at?->toIso8601String(),
                 'items' => $order->items->map(fn ($item) => [
                     'product_id' => $item->product_id,
@@ -169,7 +177,7 @@ class PaymentWebhookController extends Controller
                     'qty' => $item->qty,
                     'price' => (float) $item->price,
                     'fulfillment_status' => $item->fulfillment_status,
-                    'delivered_payload' => $item->fulfillment_status === 'delivered'
+                    'delivered_payload' => ($ownsOrder && $item->fulfillment_status === 'delivered')
                         ? $item->delivered_payload
                         : null,
                     'delivered_at' => $item->delivered_at?->toIso8601String(),

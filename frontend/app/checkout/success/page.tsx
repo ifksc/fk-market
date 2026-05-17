@@ -34,15 +34,18 @@ function CheckoutSuccessContent() {
   const { clear } = useCart();
 
   const [orderNumber, setOrderNumber] = useState<string | null>(null);
+  const [buyerEmail, setBuyerEmail] = useState<string | null>(null);
   const [order, setOrder] = useState<OrderStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
-  // Берём номер заказа: из ?order=, либо из localStorage (его положили на /checkout)
+  // Берём номер заказа: из ?order=, либо из localStorage (его положили на /checkout).
+  // Email оттуда же — он подтверждает владение заказом, без него коды не покажем.
   useEffect(() => {
     const stored = typeof window !== 'undefined' ? localStorage.getItem('fk-last-order') : null;
     setOrderNumber(queryOrder ?? stored);
+    setBuyerEmail(typeof window !== 'undefined' ? localStorage.getItem('fk-last-email') : null);
   }, [queryOrder]);
 
   // Polling: ждём пока вебхук от FKwallet поменяет статус на paid
@@ -56,7 +59,10 @@ function CheckoutSuccessContent() {
     const poll = async () => {
       attempts++;
       try {
-        const result = await getOrderStatus(orderNumber);
+        const email = typeof window !== 'undefined'
+          ? localStorage.getItem('fk-last-email') ?? undefined
+          : undefined;
+        const result = await getOrderStatus(orderNumber, email);
         if (cancelled) return;
 
         setOrder(result);
@@ -137,7 +143,14 @@ function CheckoutSuccessContent() {
                   {order.public_number}
                 </span>
                 <br />
-                Чек и коды отправили на <span className="font-semibold">{order.email}</span>
+                {buyerEmail ? (
+                  <>
+                    Чек и коды отправили на{' '}
+                    <span className="font-semibold">{buyerEmail}</span>
+                  </>
+                ) : (
+                  'Чек и коды отправлены на email, указанный при оформлении'
+                )}
               </p>
             </div>
 
@@ -196,6 +209,16 @@ function CheckoutSuccessContent() {
                 </div>
               ))}
             </div>
+
+            {!buyerEmail && (
+              <p className="mt-5 text-sm text-gray-500 dark:text-slate-400 text-center">
+                Коды отправлены на вашу почту и доступны в{' '}
+                <Link href="/account" className="text-brand-600 hover:underline">
+                  личном кабинете
+                </Link>
+                .
+              </p>
+            )}
 
             <div className="mt-8 flex flex-wrap gap-3 justify-center">
               <Link

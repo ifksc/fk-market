@@ -172,7 +172,6 @@ export type OrderStatus = {
   public_number: string;
   status: string;
   total: number;
-  email: string;
   paid_at: string | null;
   items: Array<{
     product_id: number;
@@ -185,9 +184,13 @@ export type OrderStatus = {
   }>;
 };
 
-export async function getOrderStatus(publicNumber: string): Promise<OrderStatus> {
+export async function getOrderStatus(publicNumber: string, email?: string): Promise<OrderStatus> {
+  // email подтверждает владение заказом — без него коды (delivered_payload)
+  // не вернутся, только статус.
+  const qs = new URLSearchParams({ order: publicNumber });
+  if (email) qs.set('email', email);
   const r = await apiFetch<ApiResponse<OrderStatus>>(
-    `/payments/fkwallet/check?order=${encodeURIComponent(publicNumber)}`,
+    `/payments/fkwallet/check?${qs.toString()}`,
     { cache: 'no-store' } as RequestInit,
   );
   return r.data;
