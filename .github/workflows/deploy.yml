@@ -123,11 +123,8 @@ jobs:
           docker compose exec -T app php artisan view:clear < /dev/null
 
           # Перезапуск API и воркера, чтобы они подцепили обновлённый код.
-          # fk_app использует `php artisan serve` (built-in PHP server) — это
-          # long-running процесс, который держит классы в памяти и НЕ перечитывает
-          # файлы при изменении. Без рестарта правки контроллеров не применяются.
-          # (Когда перейдём на FPM — будет достаточно `php artisan reload` или
-          # config:clear, но пока — рестарт.)
+          # fk_app — php-fpm с opcache: скомпилированные классы кэшируются в
+          # памяти воркеров, без рестарта правки контроллеров не применяются.
           echo "--- before restart: fk_app status ---"
           docker ps --filter name=fk_app --format '{{.Names}} {{.Status}}'
           echo "--- docker restart fk_app ---"

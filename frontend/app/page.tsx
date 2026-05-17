@@ -6,6 +6,10 @@ import { JsonLd } from '@/components/JsonLd';
 import { ProductCard } from '@/components/ProductCard';
 import { getCategories, getProducts } from '@/lib/api';
 
+// ISR: главная кэшируется и перегенерируется не чаще раза в 5 минут —
+// рендер из кэша вместо SSR на каждый запрос.
+export const revalidate = 300;
+
 export const metadata: Metadata = {
   description:
     'FK.market — цифровые товары с моментальной выдачей: игровые ключи, пополнения Steam, PSN, Xbox, Telegram Stars, подписки. Оплата картой и СБП, выдача 24/7.',
