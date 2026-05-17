@@ -14,6 +14,14 @@ import { FaqAccordion } from '@/components/FaqAccordion';
 // Цена/остаток могут отставать до 120с — для цифрового магазина приемлемо.
 export const revalidate = 120;
 
+// Пустой список: товары не пре-рендерятся на сборке (не дёргаем API сотни
+// раз), но наличие generateStaticParams переводит динамический роут [slug]
+// в режим ISR — страница кэшируется при первом запросе и далее отдаётся из
+// кэша. Без этого export const revalidate на [slug] не действует.
+export async function generateStaticParams() {
+  return [];
+}
+
 const CATEGORY_GRADIENTS: Record<string, string> = {
   ai: 'from-brand-500 via-fuchsia-500 to-pink-500',
   vpn: 'from-indigo-500 to-blue-600',
