@@ -39,6 +39,13 @@ class MediaDownloader
             return $url;
         }
 
+        // SSRF-защита: не ходим на приватные/loopback/link-local адреса
+        // (метаданные облака, внутренняя сеть).
+        if (!$this->isPublicUrl($url)) {
+            Log::warning('MediaDownloader: непубличный хост отклонён', ['url' => $url]);
+            return null;
+        }
+
         $storage = Storage::disk($this->disk);
         $hash = sha1($url);
         $shard = substr($hash, 0, 2);
@@ -84,6 +91,41 @@ class MediaDownloader
             Log::warning('MediaDownloader failed', ['url' => $url, 'error' => $e->getMessage()]);
             return null;
         }
+    }
+
+    /**
+     * URL ведёт на публичный адрес? Резолвим хост и отклоняем приватные,
+     * loopback и зарезервированные диапазоны (защита от SSRF).
+     */
+    protected function isPublicUrl(string $url): bool
+    {
+        $host = parse_url($url, PHP_URL_HOST);
+        if (!$host) {
+            return false;
+        }
+
+        if (filter_var($host, FILTER_VALIDATE_IP)) {
+            $ips = [$host];
+        } else {
+            $ips = [];
+            foreach (@dns_get_record($host, DNS_A | DNS_AAAA) ?: [] as $rec) {
+                if (!empty($rec['ip'])) $ips[] = $rec['ip'];
+                if (!empty($rec['ipv6'])) $ips[] = $rec['ipv6'];
+            }
+        }
+
+        // Не разрезолвили — безопаснее отказать.
+        if (empty($ips)) {
+            return false;
+        }
+
+        foreach ($ips as $ip) {
+            if (!filter_var($ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     protected function detectExt(string $url): ?string
