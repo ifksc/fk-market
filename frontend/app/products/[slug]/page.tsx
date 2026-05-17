@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound, permanentRedirect } from 'next/navigation';
 import { getCategories, getProduct } from '@/lib/api';
 import { ProductBuyBox } from '@/components/ProductBuyBox';
+import { ProductCard } from '@/components/ProductCard';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ProductTabs } from '@/components/ProductTabs';
 import { FaqAccordion } from '@/components/FaqAccordion';
@@ -210,6 +211,18 @@ export default async function ProductPage({
         {/* Правая колонка: блок покупки (client component) */}
         <ProductBuyBox product={product} />
       </div>
+
+      {/* Похожие товары — внутренняя перелинковка */}
+      {product.related.length > 0 && (
+        <section className="mt-12">
+          <h2 className="text-2xl font-bold mb-6">Похожие товары</h2>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {product.related.map((p) => (
+              <ProductCard key={p.id} p={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <script
         type="application/ld+json"
