@@ -56,14 +56,5 @@ export default async function CatalogPage({
     permanentRedirect(`/catalog/${encodeURIComponent(params.category)}${qs ? `?${qs}` : ''}`);
   }
 
-  return (
-    <CatalogView
-      q={params.q}
-      sort={params.sort}
-      page={params.page}
-      min_price={params.min_price}
-      max_price={params.max_price}
-      min_rating={params.min_rating}
-    />
-  );
+  return <CatalogView />;
 }

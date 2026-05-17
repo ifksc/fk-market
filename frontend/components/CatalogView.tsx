@@ -1,59 +1,36 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
+import { CatalogResults } from '@/components/CatalogResults';
+import { CatalogResultsView } from '@/components/CatalogResultsView';
 import { JsonLd } from '@/components/JsonLd';
-import { ProductCard } from '@/components/ProductCard';
-import { CatalogFilters, SortSelect } from '@/components/CatalogFilters';
-import { getCategories, getProducts, type ProductsQuery } from '@/lib/api';
+import { getCategories, getProducts } from '@/lib/api';
 
 const SITE = 'https://fk.market';
 
 export type CatalogViewProps = {
   /** slug категории; undefined — общий каталог / поиск */
   category?: string;
-  q?: string;
-  sort?: string;
-  page?: string;
-  min_price?: string;
-  max_price?: string;
-  min_rating?: string;
 };
 
-/** Номера страниц для пагинации: 1, текущая ±2, последняя; разрывы — '…'. */
-function pageWindow(current: number, last: number): (number | '…')[] {
-  const wanted = new Set<number>([1, last, current - 2, current - 1, current, current + 1, current + 2]);
-  const sorted = [...wanted].filter((p) => p >= 1 && p <= last).sort((a, b) => a - b);
-  const out: (number | '…')[] = [];
-  let prev = 0;
-  for (const p of sorted) {
-    if (p - prev > 1) out.push('…');
-    out.push(p);
-    prev = p;
-  }
-  return out;
-}
-
 /**
- * Содержимое каталога. Используется и страницей /catalog (общий каталог,
- * поиск), и страницей /catalog/[slug] (категория с ЧПУ). Категория приходит
- * пропом из пути, фильтры — query-параметрами.
+ * Каркас страницы каталога. Используется и /catalog, и /catalog/[slug].
+ *
+ * Шапка (крошки, h1, описание, чипсы категорий) и JSON-LD рендерятся на
+ * сервере — они зависят только от slug категории, поэтому страница остаётся
+ * статической и кэшируется (ISR). Список товаров с фильтрами/сортировкой/
+ * пагинацией вынесен в клиентский <CatalogResults> за <Suspense>: фильтры
+ * живут в URL и применяются на клиенте, не дёргая SSR на каждый запрос.
+ *
+ * Дефолтный список (популярные, стр. 1, без фильтров) рендерится сервером
+ * дважды: как fallback <Suspense> (попадает в статичный HTML — нужно для SEO
+ * и мгновенной отдачи) и как `initial` для клиентского компонента.
  */
-export async function CatalogView(props: CatalogViewProps) {
-  const { category, q, min_price, max_price, min_rating } = props;
-  const currentSort = props.sort ?? 'popular';
-  const currentPage = Number(props.page ?? 1);
+export async function CatalogView({ category }: CatalogViewProps) {
   const basePath = category ? `/catalog/${category}` : '/catalog';
 
-  const [categories, productsPage] = await Promise.all([
+  const [categories, defaultPage] = await Promise.all([
     getCategories(),
-    getProducts({
-      category,
-      q,
-      sort: currentSort as ProductsQuery['sort'],
-      min_price: min_price ? Number(min_price) : undefined,
-      max_price: max_price ? Number(max_price) : undefined,
-      min_rating: min_rating ? Number(min_rating) : undefined,
-      page: currentPage,
-      per_page: 24,
-    }),
+    getProducts({ category, sort: 'popular', page: 1, per_page: 24 }),
   ]);
 
   const activeCat = categories.find((c) => c.slug === category);
@@ -78,45 +55,6 @@ export async function CatalogView(props: CatalogViewProps) {
       curParent = p.parent_id;
     }
   }
-
-  // query-параметры для клиентских компонентов фильтров (без категории — она в пути).
-  const queryParams: Record<string, string | undefined> = {
-    q,
-    sort: props.sort,
-    page: props.page,
-    min_price,
-    max_price,
-    min_rating,
-  };
-
-  // Ссылка на категорию (или весь каталог) — ЧПУ-путь + перенос сортировки/фильтров.
-  const categoryUrl = (slug: string | null) => {
-    const base = slug ? `/catalog/${slug}` : '/catalog';
-    const sp = new URLSearchParams();
-    if (props.sort) sp.set('sort', props.sort);
-    if (min_price) sp.set('min_price', min_price);
-    if (max_price) sp.set('max_price', max_price);
-    if (min_rating) sp.set('min_rating', min_rating);
-    const qs = sp.toString();
-    return qs ? `${base}?${qs}` : base;
-  };
-
-  // Ссылка на страницу пагинации — текущий путь + query.
-  const pageUrl = (page: number) => {
-    const sp = new URLSearchParams();
-    if (q) sp.set('q', q);
-    if (props.sort) sp.set('sort', props.sort);
-    if (min_price) sp.set('min_price', min_price);
-    if (max_price) sp.set('max_price', max_price);
-    if (min_rating) sp.set('min_rating', min_rating);
-    if (page > 1) sp.set('page', String(page));
-    const qs = sp.toString();
-    return qs ? `${basePath}?${qs}` : basePath;
-  };
-
-  // key для CatalogFilters — пере-инициализация локального состояния при
-  // изменении фильтров извне (кнопка «назад» и т.п.).
-  const filterKey = `${min_price ?? ''}|${max_price ?? ''}|${min_rating ?? ''}`;
 
   // Микроразметка хлебных крошек — только на странице конкретной категории.
   const breadcrumbLd = activeCat
@@ -155,8 +93,8 @@ export async function CatalogView(props: CatalogViewProps) {
         url: `${SITE}/catalog/${activeCat.slug}`,
         mainEntity: {
           '@type': 'ItemList',
-          numberOfItems: productsPage.data.length,
-          itemListElement: productsPage.data.map((p, i) => ({
+          numberOfItems: defaultPage.data.length,
+          itemListElement: defaultPage.data.map((p, i) => ({
             '@type': 'ListItem',
             position: i + 1,
             url: `${SITE}/products/${p.slug}`,
@@ -180,7 +118,7 @@ export async function CatalogView(props: CatalogViewProps) {
         {ancestors.map((a) => (
           <span key={a.id}>
             {' / '}
-            <Link href={categoryUrl(a.slug)} className="hover:text-brand-600">
+            <Link href={`/catalog/${a.slug}`} className="hover:text-brand-600">
               {a.name}
             </Link>
           </span>
@@ -188,29 +126,20 @@ export async function CatalogView(props: CatalogViewProps) {
         {activeCat && <span> / {activeCat.name}</span>}
       </nav>
 
-      {/* Заголовок и сортировка */}
-      <div className="flex items-end justify-between flex-wrap gap-3 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{activeCat?.name ?? 'Каталог'}</h1>
-          <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-            {productsPage.meta.total.toLocaleString('ru')} товаров
-            {q ? ` · поиск «${q}»` : ''}
-          </p>
-        </div>
-        <SortSelect params={queryParams} current={currentSort} />
-      </div>
+      {/* Заголовок */}
+      <h1 className="text-3xl font-bold mb-1">{activeCat?.name ?? 'Каталог'}</h1>
 
       {/* SEO-описание категории — заполняется в админке */}
       {activeCat?.description && (
-        <p className="text-sm text-gray-600 dark:text-slate-300 mb-6 max-w-3xl whitespace-pre-line">
+        <p className="text-sm text-gray-600 dark:text-slate-300 mt-2 mb-6 max-w-3xl whitespace-pre-line">
           {activeCat.description}
         </p>
       )}
 
       {/* Чипсы категорий */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 mb-6">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar pb-3 mt-4 mb-6">
         <Link
-          href={categoryUrl(null)}
+          href="/catalog"
           className={`px-4 h-9 flex items-center rounded-full text-sm whitespace-nowrap transition ${
             !category
               ? 'fk-grad-btn'
@@ -221,7 +150,7 @@ export async function CatalogView(props: CatalogViewProps) {
         </Link>
         {activeCat && ancestors.length > 0 && (
           <Link
-            href={categoryUrl(ancestors[ancestors.length - 1].slug)}
+            href={`/catalog/${ancestors[ancestors.length - 1].slug}`}
             className="px-4 h-9 flex items-center rounded-full text-sm whitespace-nowrap bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800"
           >
             ↑ {ancestors[ancestors.length - 1].name}
@@ -230,7 +159,7 @@ export async function CatalogView(props: CatalogViewProps) {
         {visibleCats.map((cat) => (
           <Link
             key={cat.id}
-            href={categoryUrl(cat.slug)}
+            href={`/catalog/${cat.slug}`}
             className={`px-4 h-9 flex items-center gap-1.5 rounded-full text-sm whitespace-nowrap transition ${
               category === cat.slug
                 ? 'fk-grad-btn'
@@ -245,73 +174,16 @@ export async function CatalogView(props: CatalogViewProps) {
         ))}
       </div>
 
-      {/* Двухколоночный layout: фильтры + сетка */}
-      <div className="grid lg:grid-cols-[260px_1fr] gap-6">
-        <CatalogFilters key={filterKey} params={queryParams} />
-
-        <div>
-          {productsPage.data.length === 0 ? (
-            <div className="text-center py-20 text-gray-500">
-              По вашему запросу ничего не найдено.{' '}
-              <Link href={categoryUrl(category ?? null)} className="text-brand-600 hover:underline">
-                Сбросить фильтры
-              </Link>
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {productsPage.data.map((p) => (
-                <ProductCard key={p.id} p={p} />
-              ))}
-            </div>
-          )}
-
-          {/* Пагинация */}
-          {productsPage.meta.last_page > 1 && (
-            <div className="mt-8 flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                Страница {productsPage.meta.current_page} из {productsPage.meta.last_page}
-              </div>
-              <div className="flex items-center gap-1">
-                {productsPage.meta.current_page > 1 && (
-                  <Link
-                    href={pageUrl(productsPage.meta.current_page - 1)}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-                  >
-                    ‹
-                  </Link>
-                )}
-                {pageWindow(productsPage.meta.current_page, productsPage.meta.last_page).map((page, idx) =>
-                  page === '…' ? (
-                    <span key={`gap-${idx}`} className="w-9 h-9 flex items-center justify-center text-gray-400">
-                      …
-                    </span>
-                  ) : (
-                    <Link
-                      key={page}
-                      href={pageUrl(page)}
-                      className={`w-9 h-9 flex items-center justify-center rounded-lg ${
-                        page === productsPage.meta.current_page
-                          ? 'fk-grad-btn'
-                          : 'border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900'
-                      }`}
-                    >
-                      {page}
-                    </Link>
-                  ),
-                )}
-                {productsPage.meta.current_page < productsPage.meta.last_page && (
-                  <Link
-                    href={pageUrl(productsPage.meta.current_page + 1)}
-                    className="w-9 h-9 flex items-center justify-center rounded-lg border border-gray-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-900"
-                  >
-                    ›
-                  </Link>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Список товаров: фильтры/сортировка/пагинация — на клиенте.
+          fallback <Suspense> = серверный дефолтный список → попадает в
+          статичный HTML (SEO + мгновенная отдача из ISR-кэша). */}
+      <Suspense
+        fallback={
+          <CatalogResultsView data={defaultPage} basePath={basePath} params={{}} />
+        }
+      >
+        <CatalogResults category={category} basePath={basePath} initial={defaultPage} />
+      </Suspense>
 
       {breadcrumbLd && <JsonLd data={breadcrumbLd} />}
       {collectionLd && <JsonLd data={collectionLd} />}
