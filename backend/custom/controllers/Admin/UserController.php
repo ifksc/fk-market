@@ -111,7 +111,7 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $data = $request->validate([
             'is_blocked' => ['sometimes', 'boolean'],
-            'role' => ['sometimes', 'in:customer,admin,seller,moderator'],
+            'role' => ['sometimes', 'in:customer,admin,seller,moderator,journalist'],
         ]);
 
         $isSelf = $user->id === $request->user()->id;
