@@ -149,7 +149,7 @@ export default async function ProductPage({
         '@type': 'ListItem',
         position: i + 3,
         name: c.name,
-        item: `${baseUrl}/catalog?category=${encodeURIComponent(c.slug)}`,
+        item: `${baseUrl}/catalog/${c.slug}`,
       })),
       ...(showProductInBreadcrumbs
         ? [
@@ -176,7 +176,7 @@ export default async function ProductPage({
             {idx === breadcrumbs.length - 1 && !showProductInBreadcrumbs ? (
               <span>{c.name}</span>
             ) : (
-              <Link href={`/catalog?category=${c.slug}`} className="hover:text-brand-600">
+              <Link href={`/catalog/${c.slug}`} className="hover:text-brand-600">
                 {c.name}
               </Link>
             )}
