@@ -11,6 +11,7 @@ const ROLE_LABEL: Record<string, string> = {
   admin: 'Админ',
   seller: 'Продавец',
   moderator: 'Модератор',
+  journalist: 'Журналист',
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -160,6 +161,7 @@ export default function AdminUserPage() {
                   <option value="customer">Покупатель</option>
                   <option value="seller">Продавец</option>
                   <option value="moderator">Модератор</option>
+                  <option value="journalist">Журналист</option>
                   <option value="admin">Админ</option>
                 </select>
               </div>
