@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { useState } from 'react';
 
 type Props = {
@@ -28,8 +29,14 @@ export function ProductGallery({ images, fallbackGradient, fallbackLabel, discou
         }`}
       >
         {active ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={active} alt={productName} className="w-full h-full object-contain" />
+          <Image
+            src={active}
+            alt={productName}
+            fill
+            sizes="(max-width: 1024px) 100vw, 840px"
+            className="object-contain"
+            priority
+          />
         ) : (
           <div className="text-white/80 text-3xl font-bold tracking-wide">{fallbackLabel ?? '—'}</div>
         )}
@@ -54,8 +61,13 @@ export function ProductGallery({ images, fallbackGradient, fallbackLabel, discou
               }`}
               aria-label={`Картинка ${i + 1}`}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={url} alt="" className="w-full h-full object-cover" />
+              <Image
+                src={url}
+                alt=""
+                width={80}
+                height={80}
+                className="w-full h-full object-cover"
+              />
             </button>
           ))}
         </div>
