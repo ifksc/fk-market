@@ -12,6 +12,8 @@ export type Category = {
   show_in_header: boolean;
   is_new: boolean;
   products_count: number;
+  // ISO-дата последнего изменения — для <lastmod> в sitemap.xml.
+  updated_at: string | null;
 };
 
 export type ProductCategory = {
@@ -37,6 +39,8 @@ export type Product = {
   category: ProductCategory | null;
   image: string | null;
   images: string[];
+  // ISO-дата последнего изменения — для <lastmod> в sitemap.xml.
+  updated_at: string | null;
 };
 
 // Базовое поле параметра товара. Для variant_select — заполняется variants[].

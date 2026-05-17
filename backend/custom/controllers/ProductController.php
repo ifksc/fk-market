@@ -150,6 +150,9 @@ class ProductController extends Controller
             ] : null,
             'image' => $p->primaryImage()?->url,
             'images' => $p->images->pluck('url'),
+            // Для <lastmod> в sitemap.xml — реальная дата изменения товара
+            // (цена/описание/остаток), а не время генерации карты сайта.
+            'updated_at' => $p->updated_at?->toIso8601String(),
         ];
     }
 }

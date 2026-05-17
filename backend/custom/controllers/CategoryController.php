@@ -63,6 +63,8 @@ class CategoryController extends Controller
                 'show_in_header' => (bool) $c->show_in_header,
                 'is_new' => (bool) $c->is_new,
                 'products_count' => $compute($c->id),
+                // Для <lastmod> в sitemap.xml — реальная дата изменения категории.
+                'updated_at' => $c->updated_at?->toIso8601String(),
             ]),
         ]);
     }
