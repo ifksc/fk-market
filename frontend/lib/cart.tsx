@@ -28,6 +28,19 @@ type CartState = {
 const CartCtx = createContext<CartState | null>(null);
 const STORAGE_KEY = 'fk-cart';
 
+/** Проверка формы записи корзины из localStorage — защита от битых данных. */
+function isValidCartItem(x: unknown): x is CartItem {
+  if (typeof x !== 'object' || x === null) return false;
+  const i = x as Record<string, unknown>;
+  return (
+    typeof i.product_id === 'number' &&
+    typeof i.slug === 'string' &&
+    typeof i.name === 'string' &&
+    typeof i.price === 'number' &&
+    typeof i.qty === 'number'
+  );
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -35,9 +48,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) {
+        const parsed: unknown = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          setItems(parsed.filter(isValidCartItem));
+        }
+      }
     } catch {
-      // ignore
+      // битый localStorage — начинаем с пустой корзины
     } finally {
       setHydrated(true);
     }

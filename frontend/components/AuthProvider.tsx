@@ -3,8 +3,8 @@
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
 import {
   type AuthUser,
-  clearUserToken,
   getUserToken,
+  logout as apiLogout,
   me as fetchMe,
 } from '@/lib/auth';
 
@@ -33,6 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const u = await fetchMe();
       setUser(u);
+    } catch {
+      // Сеть/сервер недоступны — считаем гостем, не роняем приложение.
+      setUser(null);
     } finally {
       setLoading(false);
     }
@@ -43,7 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refresh]);
 
   const logout = useCallback(() => {
-    clearUserToken();
+    // Отзываем токен на сервере; локально токен чистится внутри apiLogout.
+    apiLogout().catch(() => {});
     setUser(null);
   }, []);
 
