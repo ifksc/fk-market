@@ -53,7 +53,7 @@ export default async function CatalogPage({
       if (params[k]) sp.set(k, params[k] as string);
     });
     const qs = sp.toString();
-    permanentRedirect(`/catalog/${params.category}${qs ? `?${qs}` : ''}`);
+    permanentRedirect(`/catalog/${encodeURIComponent(params.category)}${qs ? `?${qs}` : ''}`);
   }
 
   return (
