@@ -72,13 +72,19 @@ class DashboardController extends Controller
         $chartRows = Order::whereNotNull('paid_at')
             ->where('status', '!=', 'refunded')
             ->where('paid_at', '>=', $chartFrom)
-            ->selectRaw('DATE(paid_at) as d, SUM(total) as rev')
+            ->selectRaw('DATE(paid_at) as d, SUM(total) as rev, COUNT(*) as cnt')
             ->groupBy('d')
-            ->pluck('rev', 'd');
+            ->get()
+            ->keyBy('d');
         $chart = [];
         for ($i = 29; $i >= 0; $i--) {
             $day = now()->subDays($i)->toDateString();
-            $chart[] = ['date' => $day, 'revenue' => round((float) ($chartRows[$day] ?? 0), 2)];
+            $row = $chartRows->get($day);
+            $chart[] = [
+                'date' => $day,
+                'revenue' => round((float) ($row->rev ?? 0), 2),
+                'orders' => (int) ($row->cnt ?? 0),
+            ];
         }
 
         // --- Топ-5 товаров по продажам ---

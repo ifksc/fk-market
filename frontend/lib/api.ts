@@ -1,5 +1,6 @@
 // FK.market — клиент к нашему Laravel API
 import { API_URL } from './config';
+import { getUserToken } from './auth';
 import type {
   ApiResponse,
   BlogPostCard,
@@ -182,10 +183,15 @@ export type CheckoutResponse = {
 };
 
 export async function createOrder(payload: CheckoutPayload): Promise<CheckoutResponse> {
+  // Если покупатель авторизован — передаём токен, чтобы заказ привязался
+  // к его аккаунту (user_id) и попал в личный кабинет. Без токена /checkout
+  // не знает пользователя и заказ остаётся только с email.
+  const token = getUserToken();
   const r = await apiFetch<ApiResponse<CheckoutResponse>>('/checkout', {
     method: 'POST',
     body: JSON.stringify(payload),
     cache: 'no-store',
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   } as RequestInit);
   return r.data;
 }

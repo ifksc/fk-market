@@ -984,7 +984,7 @@ export type DashboardStats = {
   orders_today: number;
   products_total: number;
   by_status: Record<string, number>;
-  chart: Array<{ date: string; revenue: number }>;
+  chart: Array<{ date: string; revenue: number; orders: number }>;
   top_products: Array<{ id: number; name: string; sales_count: number }>;
   low_stock: Array<{ id: number; name: string; stock: number }>;
   payment_methods: Array<{ method: string; orders: number; revenue: number }>;

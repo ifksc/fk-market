@@ -31,6 +31,7 @@ use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\PromocodeController;
 use App\Http\Controllers\Api\SupportController;
 use App\Http\Middleware\EnsureBlogManagerMiddleware;
+use App\Http\Middleware\NoStoreResponseMiddleware;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -85,7 +86,7 @@ Route::prefix('auth')->group(function () {
     Route::post('/oauth/telegram/exchange', [AuthController::class, 'oauthTelegramExchange'])->middleware('throttle:20,1');
     Route::post('/oauth/vk/exchange', [AuthController::class, 'oauthVkExchange'])->middleware('throttle:20,1');
     Route::post('/oauth/yandex/exchange', [AuthController::class, 'oauthYandexExchange'])->middleware('throttle:20,1');
-    Route::middleware('auth:sanctum')->group(function () {
+    Route::middleware(['auth:sanctum', NoStoreResponseMiddleware::class])->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me', [AuthController::class, 'me']);
         Route::post('/verify-email', [AuthController::class, 'verifyEmail']);
@@ -93,7 +94,8 @@ Route::prefix('auth')->group(function () {
     });
 });
 
-Route::middleware('auth:sanctum')->group(function () {
+// no-store: личные данные покупателя не должны кэшироваться (браузер/CDN).
+Route::middleware(['auth:sanctum', NoStoreResponseMiddleware::class])->group(function () {
     // Старый алиас — фронт пока использует /api/me.
     Route::get('/me', [AuthController::class, 'me']);
 
@@ -118,7 +120,7 @@ Route::post('/admin/login', [AdminAuth::class, 'login']);
 
 // Доступно admin + journalist: профиль, логаут и весь раздел «Блог».
 // Журналист управляет только блогом — остальная админка ниже под 'admin'.
-Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class, NoStoreResponseMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/me', [AdminAuth::class, 'me']);
     Route::post('/logout', [AdminAuth::class, 'logout']);
 
@@ -131,7 +133,7 @@ Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class])->prefix(
 });
 
 // Только admin — вся остальная админка.
-Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', 'admin', NoStoreResponseMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminDashboard::class, 'stats']);
 
     Route::get('/categories', [AdminCategory::class, 'index']);
