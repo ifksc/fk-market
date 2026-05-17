@@ -79,12 +79,6 @@ export default function AdminLoginPage() {
           >
             {submitting ? 'Вход…' : 'Войти'}
           </button>
-
-          <p className="text-xs text-slate-500 text-center">
-            Сидер по умолчанию: <code className="font-mono">admin@fk.market</code> / <code>admin123</code>
-            <br />
-            Поменяй пароль через CLI: <code className="font-mono">artisan tinker</code>
-          </p>
         </form>
       </div>
     </div>
