@@ -3,15 +3,21 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { CatalogView } from '@/components/CatalogView';
 import { getCategories } from '@/lib/api';
 
+// ISR: страница категории кэшируется и перегенерируется не чаще раза в 2 минуты.
+// Фильтры/сортировка/пагинация живут в URL и применяются на клиенте
+// (см. CatalogResults), поэтому searchParams здесь не читаются — это и
+// позволяет роуту быть статическим.
+export const revalidate = 120;
+
+// Пустой список: категории не пре-рендерятся на сборке, но наличие
+// generateStaticParams переводит динамический роут [slug] в режим ISR —
+// страница кэшируется при первом запросе. Без этого revalidate не действует.
+export async function generateStaticParams() {
+  return [];
+}
+
 type Props = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{
-    sort?: string;
-    page?: string;
-    min_price?: string;
-    max_price?: string;
-    min_rating?: string;
-  }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -40,33 +46,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: 'Категория', robots: { index: false } };
 }
 
-export default async function CategoryPage({ params, searchParams }: Props) {
+export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
-  const sp = await searchParams;
 
   const categories = await getCategories();
   const bySlug = categories.find((c) => c.slug === slug);
 
   // Запрос пришёл по старому slug (fk-11) — 301 на новый ЧПУ.
+  // permanentRedirect бросает исключение, поэтому вызываем вне try/catch.
   if (!bySlug) {
     const byLegacy = categories.find((c) => c.legacy_slug === slug);
     if (byLegacy) {
-      const qs = new URLSearchParams(
-        Object.entries(sp).filter((e): e is [string, string] => Boolean(e[1])),
-      ).toString();
-      permanentRedirect(`/catalog/${byLegacy.slug}${qs ? `?${qs}` : ''}`);
+      permanentRedirect(`/catalog/${byLegacy.slug}`);
     }
     notFound();
   }
 
-  return (
-    <CatalogView
-      category={slug}
-      sort={sp.sort}
-      page={sp.page}
-      min_price={sp.min_price}
-      max_price={sp.max_price}
-      min_rating={sp.min_rating}
-    />
-  );
+  return <CatalogView category={slug} />;
 }
