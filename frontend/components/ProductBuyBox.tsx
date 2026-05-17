@@ -355,18 +355,21 @@ export function ProductBuyBox({ product }: { product: ProductDetail }) {
             <div className="flex items-center border border-gray-200 dark:border-slate-800 rounded-xl overflow-hidden">
               <button
                 type="button"
+                aria-label="Уменьшить количество"
                 onClick={() => setQty(Math.max(1, qty - 1))}
                 className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800"
               >
                 <Minus className="w-3.5 h-3.5" />
               </button>
               <input
+                aria-label="Количество"
                 value={qty}
                 onChange={(e) => setQty(Math.max(1, Number(e.target.value) || 1))}
                 className="w-10 h-9 text-center bg-transparent outline-none"
               />
               <button
                 type="button"
+                aria-label="Увеличить количество"
                 onClick={() => setQty(qty + 1)}
                 className="w-9 h-9 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800"
               >
