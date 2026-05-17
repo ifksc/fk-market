@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { FaqAccordion } from '@/components/FaqAccordion';
+import { JsonLd } from '@/components/JsonLd';
 import { getFaq } from '@/lib/api';
 
 export const metadata: Metadata = {
@@ -61,12 +62,7 @@ export default async function FaqPage() {
         — поможем.
       </div>
 
-      {allItems.length > 0 && (
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      )}
+      {allItems.length > 0 && <JsonLd data={jsonLd} />}
     </div>
   );
 }

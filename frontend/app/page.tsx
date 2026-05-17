@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { BadgePercent, Check, ShieldCheck, Shield, Package, Key, PlayCircle, User, Zap, BrainCircuit } from 'lucide-react';
+import { JsonLd } from '@/components/JsonLd';
 import { ProductCard } from '@/components/ProductCard';
 import { getCategories, getProducts } from '@/lib/api';
 
@@ -268,10 +269,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(siteLd) }}
-      />
+      <JsonLd data={siteLd} />
     </>
   );
 }
