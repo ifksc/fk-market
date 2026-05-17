@@ -206,7 +206,7 @@ export default async function HomePage() {
             return (
               <Link
                 key={cat.id}
-                href={`/catalog?category=${cat.slug}`}
+                href={`/catalog/${cat.slug}`}
                 className="fk-card fk-glow bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl overflow-hidden flex flex-col relative"
               >
                 {cat.is_new && (

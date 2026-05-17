@@ -28,7 +28,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     categories = cats
       .filter((c) => c.products_count > 0)
       .map((c): SitemapEntry => ({
-        url: `${SITE}/catalog?category=${encodeURIComponent(c.slug)}`,
+        url: `${SITE}/catalog/${c.slug}`,
         lastModified: now,
         changeFrequency: 'weekly',
         priority: 0.7,

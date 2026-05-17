@@ -73,7 +73,7 @@ export function Header() {
           {navCats.map((cat) => (
             <Link
               key={cat.id}
-              href={`/catalog?category=${cat.slug}`}
+              href={`/catalog/${cat.slug}`}
               className="flex items-center gap-1.5 text-gray-600 dark:text-slate-300 hover:text-brand-600 dark:hover:text-white"
             >
               {cat.name}
