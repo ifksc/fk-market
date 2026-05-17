@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { BadgePercent, Check, ShieldCheck, Shield, Package, Key, PlayCircle, User, Zap, BrainCircuit } from 'lucide-react';
 import { ProductCard } from '@/components/ProductCard';
@@ -125,8 +126,13 @@ export default async function HomePage() {
                   >
                     <div className={`aspect-[4/3] relative ${p.image ? 'bg-slate-800' : `bg-gradient-to-br ${grad}`} flex items-center justify-center`}>
                       {p.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={p.image} alt={p.name} loading="lazy" className="w-full h-full object-contain" />
+                        <Image
+                          src={p.image}
+                          alt={p.name}
+                          fill
+                          sizes="(max-width: 768px) 30vw, 200px"
+                          className="object-contain"
+                        />
                       ) : (
                         <div className="text-white/85 text-xs font-bold tracking-wide text-center px-2 line-clamp-3">
                           {p.name}
@@ -207,12 +213,15 @@ export default async function HomePage() {
                   </span>
                 )}
                 {cat.image_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={cat.image_url}
-                    alt={cat.name}
-                    className="aspect-[4/3] w-full object-contain bg-slate-800"
-                  />
+                  <div className="relative aspect-[4/3] w-full bg-slate-800">
+                    <Image
+                      src={cat.image_url}
+                      alt={cat.name}
+                      fill
+                      sizes="(max-width: 768px) 50vw, (max-width: 1280px) 25vw, 175px"
+                      className="object-contain"
+                    />
+                  </div>
                 ) : (
                   <div
                     className={`aspect-[4/3] w-full bg-gradient-to-br ${grad} text-white flex items-center justify-center`}
