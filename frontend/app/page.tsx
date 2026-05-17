@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { BadgePercent, Check, ShieldCheck, Shield, Package, Key, PlayCircle, User, Zap, BrainCircuit } from 'lucide-react';
 import { JsonLd } from '@/components/JsonLd';
 import { ProductCard } from '@/components/ProductCard';
-import { getCategories, getProducts } from '@/lib/api';
+import { BlogCard } from '@/components/BlogCard';
+import { getBlogPosts, getCategories, getProducts } from '@/lib/api';
 
 // ISR: главная кэшируется и перегенерируется не чаще раза в 5 минут —
 // рендер из кэша вместо SSR на каждый запрос.
@@ -38,12 +39,16 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 };
 
 export default async function HomePage() {
-  // Параллельно тянем категории, популярные (на 6 в hero + 8 в секции = 14) и новые
-  const [categories, popularPage, newPage] = await Promise.all([
+  // Параллельно тянем категории, популярные (на 6 в hero + 8 в секции = 14),
+  // новые и последние статьи блога. Блог через .catch — его сбой не должен
+  // ронять главную.
+  const [categories, popularPage, newPage, blogPage] = await Promise.all([
     getCategories(),
     getProducts({ sort: 'popular', per_page: 14 }),
     getProducts({ sort: 'new', per_page: 8 }),
+    getBlogPosts({ page: 1 }).catch(() => null),
   ]);
+  const blogPosts = blogPage?.data.slice(0, 3) ?? [];
 
   // Товары секции «Популярные товары» (H2) — те же, что в сетке ниже.
   const popularInSection = popularPage.data.slice(6, 14);
@@ -304,6 +309,31 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ИЗ БЛОГА */}
+      {blogPosts.length > 0 && (
+        <section className="max-w-7xl mx-auto px-4 py-12">
+          <div className="flex items-end justify-between mb-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold">Блог</h2>
+              <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
+                Гайды и статьи о цифровых товарах
+              </p>
+            </div>
+            <Link
+              href="/blog"
+              className="text-brand-600 dark:text-brand-500 text-sm font-medium hover:underline"
+            >
+              Все статьи →
+            </Link>
+          </div>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {blogPosts.map((p) => (
+              <BlogCard key={p.id} post={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <JsonLd data={siteLd} />
       {popularInSection.length > 0 && <JsonLd data={itemListLd} />}

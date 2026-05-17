@@ -3,11 +3,12 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getBlogPost, getProduct } from '@/lib/api';
-import type { ProductDetail } from '@/lib/types';
+import type { BlogPostFull, ProductDetail } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { FaqAccordion } from '@/components/FaqAccordion';
 import { Markdown } from '@/components/Markdown';
 import { ProductCard } from '@/components/ProductCard';
+import { BlogCard } from '@/components/BlogCard';
 
 // ISR: статья кэшируется и перегенерируется не чаще раза в 5 минут.
 export const revalidate = 300;
@@ -84,6 +85,19 @@ export default async function BlogPostPage({ params }: Props) {
       post.related_products.slice(0, 8).map((s) => getProduct(s).catch(() => null)),
     );
     relatedProducts = fetched.filter((p): p is ProductDetail => p !== null);
+  }
+
+  // Связанные статьи по slug. getBlogPost отдаёт только опубликованные —
+  // несуществующая статья/черновик молча пропускается.
+  let relatedPosts: BlogPostFull[] = [];
+  if (post.related_posts.length > 0) {
+    const fetched = await Promise.all(
+      post.related_posts.slice(0, 3).map((s) => getBlogPost(s).catch(() => null)),
+    );
+    // Саму статью в «Читайте также» не показываем (если slug попал в список).
+    relatedPosts = fetched.filter(
+      (p): p is BlogPostFull => p !== null && p.slug !== post.slug,
+    );
   }
 
   // Микроразметка статьи + хлебных крошек (+ FAQPage при наличии вопросов).
@@ -193,6 +207,18 @@ export default async function BlogPostPage({ params }: Props) {
         <section className="mt-12">
           <h2 className="font-bold text-xl mb-4">Частые вопросы</h2>
           <FaqAccordion items={post.faq.map((f, i) => ({ id: i, ...f }))} />
+        </section>
+      )}
+
+      {/* Связанные статьи */}
+      {relatedPosts.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-bold text-xl mb-4">Читайте также</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {relatedPosts.map((p) => (
+              <BlogCard key={p.id} post={p} />
+            ))}
+          </div>
         </section>
       )}
 
