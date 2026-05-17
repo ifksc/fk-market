@@ -45,6 +45,38 @@ export default async function HomePage() {
     getProducts({ sort: 'new', per_page: 8 }),
   ]);
 
+  // Товары секции «Популярные товары» (H2) — те же, что в сетке ниже.
+  const popularInSection = popularPage.data.slice(6, 14);
+
+  // Микроразметка ItemList — Google может показать товарную карусель в
+  // выдаче. Порядок position совпадает с порядком карточек в секции.
+  const itemListLd = {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Популярные товары FK.market',
+    numberOfItems: popularInSection.length,
+    itemListElement: popularInSection.map((p, i) => ({
+      '@type': 'ListItem',
+      position: i + 1,
+      item: {
+        '@type': 'Product',
+        name: p.name,
+        url: `https://fk.market/products/${p.slug}`,
+        // image нужен для карусели; у товаров без обложки поле опускаем.
+        ...(p.image ? { image: p.image } : {}),
+        offers: {
+          '@type': 'Offer',
+          price: p.price,
+          priceCurrency: p.currency || 'RUB',
+          availability:
+            p.fulfillment_mode === 'stock' && p.stock_available === 0
+              ? 'https://schema.org/OutOfStock'
+              : 'https://schema.org/InStock',
+        },
+      },
+    })),
+  };
+
   // Микроразметка Organization + WebSite (с строкой поиска для поисковиков).
   const siteLd = [
     {
@@ -274,6 +306,7 @@ export default async function HomePage() {
       </section>
 
       <JsonLd data={siteLd} />
+      {popularInSection.length > 0 && <JsonLd data={itemListLd} />}
     </>
   );
 }
