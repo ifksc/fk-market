@@ -3,6 +3,7 @@
 export type Category = {
   id: number;
   slug: string;
+  legacy_slug: string | null;
   name: string;
   description: string | null;
   icon: string | null;

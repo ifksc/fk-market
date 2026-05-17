@@ -54,6 +54,7 @@ class CategoryController extends Controller
             'data' => $categories->map(fn ($c) => [
                 'id' => $c->id,
                 'slug' => $c->slug,
+                'legacy_slug' => $c->legacy_slug,
                 'name' => $c->name,
                 'description' => $c->description,
                 'icon' => $c->icon,
