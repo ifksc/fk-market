@@ -53,6 +53,7 @@ export async function generateMetadata({
       title,
       description,
       type: 'website',
+      url: `/products/${product.slug}`,
       images: product.image ? [product.image] : undefined,
     },
     twitter: {
