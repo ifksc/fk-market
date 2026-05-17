@@ -77,3 +77,45 @@ html.dark body {
 
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ---------- Контент статьи блога (вывод react-markdown) ---------- */
+.blog-prose { line-height: 1.7; color: #1f2937; }
+html.dark .blog-prose { color: #cbd5e1; }
+.blog-prose h2 { font-size: 1.5rem; font-weight: 700; margin: 2rem 0 0.75rem; }
+.blog-prose h3 { font-size: 1.25rem; font-weight: 600; margin: 1.5rem 0 0.5rem; }
+.blog-prose p { margin: 1rem 0; }
+.blog-prose ul,
+.blog-prose ol { margin: 1rem 0; padding-left: 1.5rem; }
+.blog-prose ul { list-style: disc; }
+.blog-prose ol { list-style: decimal; }
+.blog-prose li { margin: 0.35rem 0; }
+.blog-prose a { color: #4f46e5; text-decoration: underline; }
+.blog-prose strong { font-weight: 600; }
+.blog-prose blockquote {
+  border-left: 3px solid #c7d2fe;
+  padding-left: 1rem;
+  margin: 1rem 0;
+  color: #6b7280;
+}
+.blog-prose code {
+  background: #f3f4f6;
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.35rem;
+  font-size: 0.9em;
+}
+html.dark .blog-prose code { background: #1e293b; }
+.blog-prose pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  overflow-x: auto;
+  margin: 1rem 0;
+}
+.blog-prose pre code { background: transparent; padding: 0; }
+.blog-prose img { border-radius: 0.75rem; margin: 1rem 0; max-width: 100%; height: auto; }
+.blog-prose table { border-collapse: collapse; margin: 1rem 0; width: 100%; }
+.blog-prose th,
+.blog-prose td { border: 1px solid #e5e7eb; padding: 0.5rem 0.75rem; text-align: left; }
+html.dark .blog-prose th,
+html.dark .blog-prose td { border-color: #334155; }

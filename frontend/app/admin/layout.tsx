@@ -12,6 +12,7 @@ import {
   ListOrdered,
   LogOut,
   Mail,
+  Newspaper,
   Package,
   Plug,
   Settings,
@@ -31,7 +32,17 @@ import {
   type AdminUser,
 } from '@/lib/admin';
 
-const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ className?: string }>; counter?: string }> = [
+// roles: какие роли видят пункт. Без поля — только admin.
+// Журналист видит лишь раздел «Блог».
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  counter?: string;
+  roles?: Array<'admin' | 'journalist'>;
+};
+
+const NAV: NavItem[] = [
   { href: '/admin', label: 'Дашборд', icon: LayoutIcon },
   { href: '/admin/products', label: 'Товары', icon: Package },
   { href: '/admin/categories', label: 'Категории', icon: FolderTree },
@@ -41,6 +52,7 @@ const NAV: Array<{ href: string; label: string; icon: React.ComponentType<{ clas
   { href: '/admin/queue', label: 'Очередь выдачи', icon: ShieldCheck },
   { href: '/admin/reviews', label: 'Отзывы', icon: Star },
   { href: '/admin/support', label: 'Поддержка', icon: Mail },
+  { href: '/admin/blog', label: 'Блог', icon: Newspaper, roles: ['admin', 'journalist'] },
   { href: '/admin/faq', label: 'FAQ', icon: HelpCircle },
   { href: '/admin/providers', label: 'Поставщики', icon: Plug },
   { href: '/admin/pricing', label: 'Наценки', icon: Tag },
@@ -85,6 +97,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       });
   }, [isLoginPage, router]);
 
+  // Журналист управляет только блогом — уводим его со всех прочих
+  // admin-страниц на /admin/blog (NAV их и так не показывает).
+  useEffect(() => {
+    if (
+      user?.role === 'journalist' &&
+      !isLoginPage &&
+      pathname &&
+      !pathname.startsWith('/admin/blog')
+    ) {
+      router.replace('/admin/blog');
+    }
+  }, [user, pathname, isLoginPage, router]);
+
   const handleLogout = async () => {
     await adminLogout();
     router.replace('/admin/login');
@@ -115,12 +140,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <LogoMark size={32} />
           <span className="fk-logo font-bold">FK.market</span>
           <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-brand-50 dark:bg-brand-700/20 text-brand-700 dark:text-brand-500 font-semibold">
-            admin
+            {user.role}
           </span>
         </Link>
 
         <nav className="p-3 text-sm space-y-0.5 flex-1">
-          {NAV.map(({ href, label, icon: Icon }) => {
+          {NAV.filter((i) => (i.roles ?? ['admin']).includes(user.role)).map(({ href, label, icon: Icon }) => {
             const active = pathname === href || pathname?.startsWith(href + '/');
             return (
               <Link

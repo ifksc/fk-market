@@ -99,3 +99,31 @@ export type Paginated<T> = {
 export type ApiResponse<T> = {
   data: T;
 };
+
+// ---------- Блог ----------
+export type BlogFaqItem = {
+  question: string;
+  answer: string;
+};
+
+/** Карточка статьи в списке /blog — без тяжёлого content. */
+export type BlogPostCard = {
+  id: number;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  cover_image: string | null;
+  author: string | null;
+  tags: string[];
+  published_at: string | null;
+};
+
+/** Полная статья — страница /blog/[slug]. */
+export type BlogPostFull = BlogPostCard & {
+  meta_description: string | null;
+  content: string | null;
+  related_products: string[];
+  related_posts: string[];
+  faq: BlogFaqItem[];
+  updated_at: string | null;
+};
