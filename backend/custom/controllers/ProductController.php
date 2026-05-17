@@ -100,7 +100,9 @@ class ProductController extends Controller
      */
     private function relatedProducts(Product $product): \Illuminate\Support\Collection
     {
-        $cat = $product->category;
+        // Берём категорию отдельным запросом: в show() она загружена с урезанным
+        // набором колонок (без parent_id).
+        $cat = Category::find($product->category_id);
         if (!$cat) {
             return collect();
         }
