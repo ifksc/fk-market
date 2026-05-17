@@ -2,7 +2,8 @@
 // Токен Sanctum в localStorage ('fk-user-token'). Админский токен живёт отдельно
 // в 'fk-admin-token' — это две независимые сессии.
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://fk.market/api';
+import { API_URL } from './config';
+
 const TOKEN_KEY = 'fk-user-token';
 
 export type AuthUser = {

@@ -1,6 +1,7 @@
 // FK.market — клиент к /api/admin/* и хранение токена админа
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'https://fk.market/api';
+import { API_URL } from './config';
+
 const TOKEN_KEY = 'fk-admin-token';
 
 export type AdminUser = {
