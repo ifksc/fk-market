@@ -2,11 +2,12 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { getBlogPost } from '@/lib/api';
+import { getBlogPost, getProduct } from '@/lib/api';
+import type { ProductDetail } from '@/lib/types';
 import { JsonLd } from '@/components/JsonLd';
 import { FaqAccordion } from '@/components/FaqAccordion';
+import { Markdown } from '@/components/Markdown';
+import { ProductCard } from '@/components/ProductCard';
 
 // ISR: статья кэшируется и перегенерируется не чаще раза в 5 минут.
 export const revalidate = 300;
@@ -74,6 +75,16 @@ export default async function BlogPostPage({ params }: Props) {
   }
 
   const url = `${SITE}/blog/${post.slug}`;
+
+  // CTA-блок: подтягиваем связанные товары по slug. Несуществующий/удалённый
+  // товар молча пропускаем — статья не должна падать из-за него.
+  let relatedProducts: ProductDetail[] = [];
+  if (post.related_products.length > 0) {
+    const fetched = await Promise.all(
+      post.related_products.slice(0, 8).map((s) => getProduct(s).catch(() => null)),
+    );
+    relatedProducts = fetched.filter((p): p is ProductDetail => p !== null);
+  }
 
   // Микроразметка статьи + хлебных крошек (+ FAQPage при наличии вопросов).
   const articleLd = {
@@ -160,11 +171,22 @@ export default async function BlogPostPage({ params }: Props) {
         </div>
       )}
 
-      {/* Контент статьи (Markdown). react-markdown по умолчанию не рендерит
-          сырой HTML — XSS-безопасно даже для контента из админки. */}
-      <div className="blog-prose mt-8">
-        <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content ?? ''}</ReactMarkdown>
+      {/* Контент статьи (Markdown) */}
+      <div className="mt-8">
+        <Markdown>{post.content ?? ''}</Markdown>
       </div>
+
+      {/* CTA-блок: товары из статьи */}
+      {relatedProducts.length > 0 && (
+        <section className="mt-12">
+          <h2 className="font-bold text-xl mb-4">Товары из статьи</h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {relatedProducts.map((p) => (
+              <ProductCard key={p.id} p={p} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Частые вопросы */}
       {post.faq.length > 0 && (

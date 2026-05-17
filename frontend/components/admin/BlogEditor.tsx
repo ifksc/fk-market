@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import {
   createAdminBlogPost,
@@ -11,6 +11,7 @@ import {
   type AdminBlogInput,
   type AdminBlogPost,
 } from '@/lib/admin';
+import { Markdown } from '@/components/Markdown';
 
 /** Список строк ↔ строка через запятую. */
 function toList(s: string): string[] {
@@ -37,6 +38,107 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Переключатель «Редактор / Превью» для поля контента.
+  const [contentTab, setContentTab] = useState<'edit' | 'preview'>('edit');
+
+  // --- Автосохранение черновика в localStorage ---
+  const draftKey = initial ? `fk-blog-draft-${initial.id}` : 'fk-blog-draft-new';
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [restorable, setRestorable] = useState<string | null>(null);
+
+  // Снимок исходных значений — с ним сравниваем, были ли правки.
+  const initialSnapshot = useMemo(
+    () =>
+      JSON.stringify({
+        title: initial?.title ?? '',
+        slug: initial?.slug ?? '',
+        excerpt: initial?.excerpt ?? '',
+        metaDescription: initial?.meta_description ?? '',
+        content: initial?.content ?? '',
+        author: initial?.author ?? '',
+        status: initial?.status ?? 'draft',
+        tags: (initial?.tags ?? []).join(', '),
+        relatedProducts: (initial?.related_products ?? []).join(', '),
+        relatedPosts: (initial?.related_posts ?? []).join(', '),
+        faq: initial?.faq ?? [],
+      }),
+    [initial],
+  );
+
+  // Текущий снимок формы.
+  const snapshot = useMemo(
+    () =>
+      JSON.stringify({
+        title,
+        slug,
+        excerpt,
+        metaDescription,
+        content,
+        author,
+        status,
+        tags,
+        relatedProducts,
+        relatedPosts,
+        faq,
+      }),
+    [title, slug, excerpt, metaDescription, content, author, status, tags, relatedProducts, relatedPosts, faq],
+  );
+
+  // На монтировании: есть ли сохранённый черновик, отличный от исходных данных.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(draftKey);
+      if (saved && saved !== initialSnapshot) setRestorable(saved);
+    } catch {
+      /* localStorage недоступен */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Автосейв (debounce 1с) — только когда форма реально изменена.
+  useEffect(() => {
+    if (snapshot === initialSnapshot) return;
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, snapshot);
+        setSavedAt(new Date());
+      } catch {
+        /* localStorage недоступен */
+      }
+    }, 1000);
+    return () => clearTimeout(t);
+  }, [snapshot, initialSnapshot, draftKey]);
+
+  const restoreDraft = () => {
+    if (!restorable) return;
+    try {
+      const d = JSON.parse(restorable) as Record<string, unknown>;
+      setTitle(typeof d.title === 'string' ? d.title : '');
+      setSlug(typeof d.slug === 'string' ? d.slug : '');
+      setExcerpt(typeof d.excerpt === 'string' ? d.excerpt : '');
+      setMetaDescription(typeof d.metaDescription === 'string' ? d.metaDescription : '');
+      setContent(typeof d.content === 'string' ? d.content : '');
+      setAuthor(typeof d.author === 'string' ? d.author : '');
+      setStatus(d.status === 'published' ? 'published' : 'draft');
+      setTags(typeof d.tags === 'string' ? d.tags : '');
+      setRelatedProducts(typeof d.relatedProducts === 'string' ? d.relatedProducts : '');
+      setRelatedPosts(typeof d.relatedPosts === 'string' ? d.relatedPosts : '');
+      setFaq(Array.isArray(d.faq) ? (d.faq as typeof faq) : []);
+    } catch {
+      /* битый черновик — игнорируем */
+    }
+    setRestorable(null);
+  };
+
+  const discardDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      /* ignore */
+    }
+    setRestorable(null);
+  };
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,6 +169,12 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
         const created = await createAdminBlogPost(payload);
         // Переходим в режим редактирования — там доступна загрузка обложки.
         router.push(`/admin/blog/${created.id}`);
+      }
+      // Сохранение на сервере прошло — локальный черновик больше не нужен.
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Не удалось сохранить');
@@ -104,18 +212,50 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
           </Link>
           <h1 className="font-bold text-lg">{isEdit ? 'Статья блога' : 'Новая статья'}</h1>
         </div>
-        <button
-          type="submit"
-          form="blog-form"
-          disabled={submitting}
-          className="h-10 px-4 rounded-xl fk-grad-btn text-sm font-medium flex items-center gap-2 disabled:opacity-50"
-        >
-          <Save className="w-4 h-4" />
-          {submitting ? 'Сохраняем…' : 'Сохранить'}
-        </button>
+        <div className="flex items-center gap-3">
+          {savedAt && (
+            <span className="text-xs text-slate-400 hidden sm:inline">
+              Черновик сохранён локально {savedAt.toLocaleTimeString('ru-RU')}
+            </span>
+          )}
+          <button
+            type="submit"
+            form="blog-form"
+            disabled={submitting}
+            className="h-10 px-4 rounded-xl fk-grad-btn text-sm font-medium flex items-center gap-2 disabled:opacity-50"
+          >
+            <Save className="w-4 h-4" />
+            {submitting ? 'Сохраняем…' : 'Сохранить'}
+          </button>
+        </div>
       </header>
 
       <form id="blog-form" onSubmit={onSubmit} className="p-6 max-w-3xl space-y-4">
+        {/* Восстановление несохранённого черновика */}
+        {restorable && (
+          <div className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-500/10 p-4 text-sm flex items-center justify-between gap-3">
+            <span className="text-amber-800 dark:text-amber-300">
+              Найден несохранённый черновик этой статьи.
+            </span>
+            <div className="flex gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={restoreDraft}
+                className="h-8 px-3 rounded-lg fk-grad-btn text-xs font-medium"
+              >
+                Восстановить
+              </button>
+              <button
+                type="button"
+                onClick={discardDraft}
+                className="h-8 px-3 rounded-lg border border-amber-300 dark:border-amber-500/40 text-xs"
+              >
+                Удалить
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Основное */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
           <div>
@@ -148,13 +288,45 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
         {/* Контент */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
           <div>
-            <label className={labelCls}>Контент (Markdown)</label>
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              maxLength={100000}
-              className={`${areaCls} h-96 font-mono`}
-            />
+            <div className="flex items-center justify-between mb-1">
+              <label className={labelCls}>Контент (Markdown)</label>
+              <div className="flex gap-1 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setContentTab('edit')}
+                  className={`px-2.5 py-1 rounded-md ${
+                    contentTab === 'edit' ? 'fk-grad-btn font-medium' : 'text-slate-500 hover:text-brand-600'
+                  }`}
+                >
+                  Редактор
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setContentTab('preview')}
+                  className={`px-2.5 py-1 rounded-md ${
+                    contentTab === 'preview' ? 'fk-grad-btn font-medium' : 'text-slate-500 hover:text-brand-600'
+                  }`}
+                >
+                  Превью
+                </button>
+              </div>
+            </div>
+            {contentTab === 'edit' ? (
+              <textarea
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                maxLength={100000}
+                className={`${areaCls} h-96 font-mono`}
+              />
+            ) : (
+              <div className="min-h-96 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 overflow-auto">
+                {content.trim() ? (
+                  <Markdown>{content}</Markdown>
+                ) : (
+                  <p className="text-sm text-slate-400">Пусто — напишите контент во вкладке «Редактор».</p>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -200,8 +372,17 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
           <label className={labelCls}>Обложка (1200×630)</label>
           {coverImage ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={coverImage} alt="" className="rounded-xl max-h-48 border border-slate-200 dark:border-slate-800" />
+            <>
+              {/* Кадр 1200×630 с object-cover — ровно так обложка
+                  обрежется по центру на сайте. */}
+              <div className="relative aspect-[1200/630] w-full max-w-md rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-800">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+              </div>
+              <p className="text-xs text-slate-400">
+                Картинка обрезается по центру до 1200×630 — проверьте кадр выше.
+              </p>
+            </>
           ) : (
             <p className="text-xs text-slate-400">Обложка не загружена</p>
           )}
