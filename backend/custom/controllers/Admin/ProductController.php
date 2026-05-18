@@ -12,6 +12,7 @@ use App\Models\Seller;
 use App\Models\PricingRule;
 use App\Services\PriceCalculator;
 use App\Services\ProductSlug;
+use App\Services\Providers\ProductRefresher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
@@ -139,6 +140,9 @@ class ProductController extends Controller
      * FK-API отдаёт товары пачкой по категории (получить один товар их API не
      * умеет), поэтому повторно синкаем категории поставщика, к которым
      * относятся provider_products этого товара — обычно одну.
+     *
+     * После синка точечно перечитываем «мету» товара (name/описание/картинку)
+     * — обычный refresh цен/остатков их намеренно не трогает.
      */
     public function resync(Product $product): JsonResponse
     {
@@ -174,7 +178,16 @@ class ProductController extends Controller
             ]);
         }
 
-        return response()->json(['data' => ['ok' => true, 'categories' => $catIds->count()]]);
+        // Синк обновил provider_products и categories; перечитываем мету товара
+        // (имя/описание/первичную картинку) из свежих провайдерских данных.
+        $product->refresh();
+        $metaUpdated = (new ProductRefresher())->refreshMeta($product);
+
+        return response()->json(['data' => [
+            'ok' => true,
+            'categories' => $catIds->count(),
+            'meta_updated' => $metaUpdated,
+        ]]);
     }
 
     // ---------------- Картинки товара ----------------
