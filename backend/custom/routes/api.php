@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\ProductController;
 use App\Http\Controllers\Api\FaqController;
 use App\Http\Controllers\Api\PromocodeController;
 use App\Http\Controllers\Api\SupportController;
+use App\Http\Middleware\AdminIpWhitelistMiddleware;
 use App\Http\Middleware\EnsureBlogManagerMiddleware;
 use App\Http\Middleware\NoStoreResponseMiddleware;
 use Illuminate\Http\Request;
@@ -116,11 +117,14 @@ Route::middleware(['auth:sanctum', NoStoreResponseMiddleware::class])->group(fun
 });
 
 // ---------- Админка ----------
-Route::post('/admin/login', [AdminAuth::class, 'login']);
+// AdminIpWhitelistMiddleware на всех /admin/* (включая login) — доступ к
+// админке только с IP из ADMIN_IP_ALLOWLIST. Пустой список — ограничение off.
+Route::post('/admin/login', [AdminAuth::class, 'login'])
+    ->middleware(AdminIpWhitelistMiddleware::class);
 
 // Доступно admin + journalist: профиль, логаут и весь раздел «Блог».
 // Журналист управляет только блогом — остальная админка ниже под 'admin'.
-Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class, NoStoreResponseMiddleware::class])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', AdminIpWhitelistMiddleware::class, EnsureBlogManagerMiddleware::class, NoStoreResponseMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/me', [AdminAuth::class, 'me']);
     Route::post('/logout', [AdminAuth::class, 'logout']);
 
@@ -134,7 +138,7 @@ Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class, NoStoreRe
 });
 
 // Только admin — вся остальная админка.
-Route::middleware(['auth:sanctum', 'admin', NoStoreResponseMiddleware::class])->prefix('admin')->group(function () {
+Route::middleware(['auth:sanctum', AdminIpWhitelistMiddleware::class, 'admin', NoStoreResponseMiddleware::class])->prefix('admin')->group(function () {
     Route::get('/dashboard', [AdminDashboard::class, 'stats']);
 
     Route::get('/categories', [AdminCategory::class, 'index']);
