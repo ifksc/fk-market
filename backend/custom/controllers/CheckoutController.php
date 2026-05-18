@@ -130,7 +130,10 @@ class CheckoutController extends Controller
                 'promocode_id' => $promocode?->id,
                 'total' => round($subtotal - $discount, 2),
                 'status' => 'pending',
-                'ip' => $request->ip(),
+                // Реальный IP клиента — из DDG-Connecting-IP (DDoS-Guard).
+                // $request->ip() за nginx в Docker отдаёт IP бридж-сети
+                // (172.x), а не покупателя — этот же IP уходил и в Freekassa.
+                'ip' => $request->header('DDG-Connecting-IP') ?: $request->ip(),
                 'user_agent' => $request->userAgent(),
             ]);
 
