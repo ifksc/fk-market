@@ -37,6 +37,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'fk.market' },
+      // Картинки товаров из синхронизации FKwallet лежат на их CDN.
+      { protocol: 'https', hostname: 'cdn.fkwallet.io' },
       { protocol: 'http', hostname: 'localhost' },
     ],
   },
