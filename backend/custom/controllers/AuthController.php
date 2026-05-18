@@ -9,6 +9,7 @@ use App\Models\EmailVerification;
 use App\Models\OauthIdentity;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\ClientIp;
 use Firebase\JWT\JWK;
 use Firebase\JWT\JWT;
 use Illuminate\Http\JsonResponse;
@@ -82,7 +83,7 @@ class AuthController extends Controller
         ]);
 
         // Rate limit: 5 попыток / мин на пару (IP, email).
-        $key = 'login:' . sha1($request->ip() . '|' . strtolower($data['email']));
+        $key = 'login:' . sha1(ClientIp::resolve($request) . '|' . strtolower($data['email']));
         if (RateLimiter::tooManyAttempts($key, 5)) {
             $seconds = RateLimiter::availableIn($key);
             return response()->json([
@@ -366,7 +367,7 @@ class AuthController extends Controller
         ]);
 
         // Rate-limit: 3 запроса / 10 мин на пару (IP, email).
-        $key = 'forgot:' . sha1($request->ip() . '|' . strtolower($data['email']));
+        $key = 'forgot:' . sha1(ClientIp::resolve($request) . '|' . strtolower($data['email']));
         if (RateLimiter::tooManyAttempts($key, 3)) {
             $seconds = RateLimiter::availableIn($key);
             return response()->json([
@@ -1034,7 +1035,7 @@ class AuthController extends Controller
         $plain = $user->createToken($deviceName, $abilities)->plainTextToken;
         $user->forceFill([
             'last_login_at' => now(),
-            'last_login_ip' => $request->ip(),
+            'last_login_ip' => ClientIp::resolve($request),
         ])->save();
         return $plain;
     }

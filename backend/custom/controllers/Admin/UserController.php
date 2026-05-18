@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\Order;
 use App\Models\User;
+use App\Services\ClientIp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -139,7 +140,7 @@ class UserController extends Controller
                 'subject_type' => 'User',
                 'subject_id' => $user->id,
                 'payload' => $changes,
-                'ip' => $request->ip(),
+                'ip' => ClientIp::resolve($request),
                 'user_agent' => mb_substr((string) $request->userAgent(), 0, 500),
             ]);
 

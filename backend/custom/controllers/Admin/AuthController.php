@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\ClientIp;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,7 @@ class AuthController extends Controller
         ]);
 
         // Простой rate limit: не больше 6 попыток в минуту с одного IP+email
-        $key = 'admin-login:' . sha1($request->ip() . '|' . strtolower($data['email']));
+        $key = 'admin-login:' . sha1(ClientIp::resolve($request) . '|' . strtolower($data['email']));
         if (RateLimiter::tooManyAttempts($key, 6)) {
             $seconds = RateLimiter::availableIn($key);
             return response()->json(

@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Provider;
+use App\Services\ClientIp;
 use App\Services\FreekassaGateway;
 use App\Services\PromocodeService;
 use App\Services\Providers\FkwalletProductsGateway;
@@ -130,10 +131,8 @@ class CheckoutController extends Controller
                 'promocode_id' => $promocode?->id,
                 'total' => round($subtotal - $discount, 2),
                 'status' => 'pending',
-                // Реальный IP клиента — из DDG-Connecting-IP (DDoS-Guard).
-                // $request->ip() за nginx в Docker отдаёт IP бридж-сети
-                // (172.x), а не покупателя — этот же IP уходил и в Freekassa.
-                'ip' => $request->header('DDG-Connecting-IP') ?: $request->ip(),
+                // Реальный IP клиента (DDG-Connecting-IP за DDoS-Guard).
+                'ip' => ClientIp::resolve($request),
                 'user_agent' => $request->userAgent(),
             ]);
 
