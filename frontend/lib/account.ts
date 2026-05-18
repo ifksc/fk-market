@@ -6,7 +6,7 @@ import { API_URL } from './config';
 
 export type MyOrderSummary = {
   public_number: string;
-  status: 'pending' | 'paid' | 'completed' | 'cancelled' | 'refunded';
+  status: 'pending' | 'paid' | 'fulfilling' | 'completed' | 'failed' | 'cancelled' | 'refunded';
   total: number;
   currency: string;
   email: string;

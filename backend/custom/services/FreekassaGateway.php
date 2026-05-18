@@ -111,7 +111,10 @@ class FreekassaGateway
             'paymentId' => (string) $order->public_number,
             'i' => $paymentSystemId ?? 0,
             'email' => $email,
-            'ip' => request()?->ip() ?? '127.0.0.1',
+            // Берём реальный IP покупателя, сохранённый на заказе при checkout
+            // (CheckoutController резолвит его из DDG-Connecting-IP). request()
+            // здесь отдал бы IP Docker-бридж-сети, а не клиента.
+            'ip' => $order->ip ?: '127.0.0.1',
             'amount' => round((float) $order->total, 2),
             'currency' => 'RUB',
         ];
