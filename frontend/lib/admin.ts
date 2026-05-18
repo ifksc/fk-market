@@ -1216,6 +1216,14 @@ export async function deleteAdminBlogPost(id: number): Promise<void> {
   await adminFetch(`/admin/blog/${id}`, { method: 'DELETE' });
 }
 
+/** Публикация статьи в Telegram-канал. Статья должна быть опубликована. */
+export async function publishBlogToTelegram(id: number): Promise<AdminBlogPost> {
+  const r = await adminFetch<{ data: AdminBlogPost }>(`/admin/blog/${id}/telegram`, {
+    method: 'POST',
+  });
+  return r.data;
+}
+
 /**
  * Загрузка обложки статьи. multipart/form-data — поэтому не через adminFetch
  * (там жёстко Content-Type: application/json).

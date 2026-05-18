@@ -8,6 +8,7 @@ import {
   createAdminBlogPost,
   updateAdminBlogPost,
   uploadAdminBlogCover,
+  publishBlogToTelegram,
   type AdminBlogInput,
   type AdminBlogPost,
 } from '@/lib/admin';
@@ -34,6 +35,13 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
   const [relatedPosts, setRelatedPosts] = useState((initial?.related_posts ?? []).join(', '));
   const [faq, setFaq] = useState(initial?.faq ?? []);
   const [coverImage, setCoverImage] = useState(initial?.cover_image ?? '');
+
+  // Публикация в Telegram-канал.
+  const [telegramPostedAt, setTelegramPostedAt] = useState<string | null>(
+    initial?.telegram_posted_at ?? null,
+  );
+  const [tgPosting, setTgPosting] = useState(false);
+  const [tgError, setTgError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -227,6 +235,20 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
       setError(err instanceof Error ? err.message : 'Не удалось загрузить обложку');
     } finally {
       setUploading(false);
+    }
+  };
+
+  const onPublishTelegram = async () => {
+    if (!initial) return;
+    setTgPosting(true);
+    setTgError(null);
+    try {
+      const updated = await publishBlogToTelegram(initial.id);
+      setTelegramPostedAt(updated.telegram_posted_at ?? null);
+    } catch (err) {
+      setTgError(err instanceof Error ? err.message : 'Не удалось опубликовать в Telegram');
+    } finally {
+      setTgPosting(false);
     }
   };
 
@@ -454,6 +476,41 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
           )}
           {uploading && <p className="text-xs text-slate-400">Загружаем…</p>}
         </div>
+
+        {/* Публикация в Telegram-канал — только для сохранённой статьи */}
+        {isEdit && (
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
+            <label className={labelCls}>Telegram-канал</label>
+            {initial && initial.status !== 'published' ? (
+              <p className="text-xs text-slate-400">
+                Публикация в Telegram станет доступна после сохранения статьи со статусом «Опубликовано».
+              </p>
+            ) : (
+              <>
+                {telegramPostedAt ? (
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                    Опубликовано в Telegram {new Date(telegramPostedAt).toLocaleString('ru-RU')}
+                  </p>
+                ) : (
+                  <p className="text-xs text-slate-400">Статья ещё не публиковалась в канале.</p>
+                )}
+                <button
+                  type="button"
+                  onClick={onPublishTelegram}
+                  disabled={tgPosting}
+                  className="h-9 px-4 rounded-xl border border-[#229ED9] text-[#229ED9] text-sm font-medium hover:bg-[#229ED9] hover:text-white transition disabled:opacity-50"
+                >
+                  {tgPosting
+                    ? 'Отправляем…'
+                    : telegramPostedAt
+                      ? 'Опубликовать в Telegram повторно'
+                      : 'Опубликовать в Telegram'}
+                </button>
+                {tgError && <p className="text-xs text-red-500">{tgError}</p>}
+              </>
+            )}
+          </div>
+        )}
 
         {/* FAQ */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-3">
