@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\BlogPost;
+use App\Services\TelegramChannelService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -95,6 +96,28 @@ class BlogController extends Controller
 
         $storage->put($path, file_get_contents($file->getRealPath()));
         $post->update(['cover_image' => $storage->url($path)]);
+
+        return response()->json(['data' => $this->transform($post->refresh())]);
+    }
+
+    /**
+     * POST /api/admin/blog/{id}/telegram — публикация статьи в Telegram-канал.
+     */
+    public function publishToTelegram(BlogPost $post, TelegramChannelService $telegram): JsonResponse
+    {
+        if ($post->status !== 'published') {
+            return response()->json(['message' => 'Сначала опубликуйте статью на сайте'], 422);
+        }
+
+        $result = $telegram->postBlogPost($post);
+        if (!($result['ok'] ?? false)) {
+            return response()->json(['message' => $result['message'] ?? 'Не удалось опубликовать'], 502);
+        }
+
+        $post->update([
+            'telegram_posted_at' => now(),
+            'telegram_message_id' => $result['message_id'] ?? null,
+        ]);
 
         return response()->json(['data' => $this->transform($post->refresh())]);
     }

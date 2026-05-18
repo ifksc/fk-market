@@ -130,6 +130,7 @@ Route::middleware(['auth:sanctum', EnsureBlogManagerMiddleware::class, NoStoreRe
     Route::put('/blog/{post:id}', [AdminBlog::class, 'update']);
     Route::delete('/blog/{post:id}', [AdminBlog::class, 'destroy']);
     Route::post('/blog/{post:id}/cover', [AdminBlog::class, 'uploadCover']);
+    Route::post('/blog/{post:id}/telegram', [AdminBlog::class, 'publishToTelegram']);
 });
 
 // Только admin — вся остальная админка.
