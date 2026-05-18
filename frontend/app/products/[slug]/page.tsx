@@ -32,9 +32,13 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
   services: 'from-violet-500 to-fuchsia-500',
 };
 
-// Готовит мета-описание: схлопывает пробелы/переносы и обрезает до ~160 символов.
+// Готовит мета-описание: вырезает HTML-теги (описание из синхронизации может
+// быть в HTML), схлопывает пробелы/переносы и обрезает до ~160 символов.
 function metaDescription(text: string | null | undefined, fallback: string): string {
-  const clean = (text ?? '').replace(/\s+/g, ' ').trim();
+  const clean = (text ?? '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!clean) return fallback;
   return clean.length > 160 ? `${clean.slice(0, 157).trimEnd()}…` : clean;
 }

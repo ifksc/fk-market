@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Markdown } from '@/components/Markdown';
 
 type Review = {
   id: number;
@@ -63,7 +64,9 @@ export function ProductTabs({
               синхронизации — обрезанная копия начала description, поэтому
               рендер обоих полей давал дублирование текста. */}
           {description || shortDescription ? (
-            <p className="text-base whitespace-pre-line">{description || shortDescription}</p>
+            // Описание может быть в HTML/Markdown — рендерим безопасно
+            // (react-markdown + rehype-sanitize), а не как сырой текст.
+            <Markdown>{description || shortDescription || ''}</Markdown>
           ) : (
             <p className="text-gray-400">Описание не заполнено.</p>
           )}
