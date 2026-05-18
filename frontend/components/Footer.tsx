@@ -23,6 +23,7 @@ export function Footer() {
           <ul className="space-y-2 text-gray-500 dark:text-slate-400">
             <li><Link href="/catalog" className="hover:text-brand-600">Каталог</Link></li>
             <li><Link href="/catalog?sort=new" className="hover:text-brand-600">Новинки</Link></li>
+            <li><Link href="/blog" className="hover:text-brand-600">Блог</Link></li>
           </ul>
         </div>
         <div>
