@@ -153,6 +153,8 @@ docker events --since 5m --until 1s
 
 **Контейнеры:** `fk_app` (Laravel), `fk_worker` (queue:work), `fk_nginx` (внутри Docker — не путать с системным), `fk_mysql`, `fk_redis`, `fk_pma` (phpMyAdmin), `fk_frontend` (Next.js standalone).
 
+**Artisan на проде:** PHP только внутри контейнера, на хосте его нет. Разовая команда — `docker exec fk_app php artisan <команда>`; для интерактивных подтверждений добавлять `-it` (`docker exec -it fk_app …`).
+
 **Системный nginx** на хосте проксирует: `/api/*` → `127.0.0.1:8000` (Laravel), `/*` → `127.0.0.1:3000` (Next.js).
 
 ## Полезные ссылки внутри vault
