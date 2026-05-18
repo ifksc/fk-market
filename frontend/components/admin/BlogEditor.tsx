@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import {
   createAdminBlogPost,
@@ -138,6 +138,39 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
       /* ignore */
     }
     setRestorable(null);
+  };
+
+  // --- Вставка картинки/ссылки в текст по позиции курсора ---
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+
+  const insertAtCursor = (text: string) => {
+    const ta = contentRef.current;
+    if (!ta) {
+      setContent((c) => c + text);
+      return;
+    }
+    const start = ta.selectionStart;
+    const end = ta.selectionEnd;
+    setContent(content.slice(0, start) + text + content.slice(end));
+    // Возвращаем фокус и ставим курсор после вставленного фрагмента.
+    requestAnimationFrame(() => {
+      ta.focus();
+      ta.selectionStart = ta.selectionEnd = start + text.length;
+    });
+  };
+
+  const insertImage = () => {
+    const url = window.prompt('URL картинки:')?.trim();
+    if (!url) return;
+    const alt = window.prompt('Описание картинки (alt):')?.trim() ?? '';
+    insertAtCursor(`![${alt}](${url})`);
+  };
+
+  const insertLink = () => {
+    const url = window.prompt('URL ссылки:')?.trim();
+    if (!url) return;
+    const text = window.prompt('Текст ссылки:')?.trim() || url;
+    insertAtCursor(`[${text}](${url})`);
   };
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -288,9 +321,28 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
         {/* Контент */}
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 space-y-4">
           <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className={labelCls}>Контент (Markdown)</label>
-              <div className="flex gap-1 text-xs">
+            <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
+              <label className={labelCls}>Контент (Markdown или HTML)</label>
+              <div className="flex items-center gap-1 text-xs">
+                {contentTab === 'edit' && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={insertImage}
+                      className="px-2.5 py-1 rounded-md text-slate-500 hover:text-brand-600"
+                    >
+                      + Картинка
+                    </button>
+                    <button
+                      type="button"
+                      onClick={insertLink}
+                      className="px-2.5 py-1 rounded-md text-slate-500 hover:text-brand-600"
+                    >
+                      + Ссылка
+                    </button>
+                    <span className="w-px h-4 bg-slate-300 dark:bg-slate-700 mx-1" />
+                  </>
+                )}
                 <button
                   type="button"
                   onClick={() => setContentTab('edit')}
@@ -313,6 +365,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
             </div>
             {contentTab === 'edit' ? (
               <textarea
+                ref={contentRef}
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 maxLength={100000}
