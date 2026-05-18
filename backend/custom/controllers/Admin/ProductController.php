@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Product;
 use App\Models\ProductImage;
+use App\Models\Provider;
+use App\Models\ProviderProduct;
 use App\Models\Seller;
 use App\Models\PricingRule;
 use App\Services\PriceCalculator;
 use App\Services\ProductSlug;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
@@ -127,6 +130,51 @@ class ProductController extends Controller
     {
         $product->update(['status' => 'archived']);
         return response()->json(['data' => ['ok' => true]]);
+    }
+
+    /**
+     * POST /api/admin/products/{id}/resync — точечный ре-синк товара из синка
+     * поставщика, без прогона всего каталога.
+     *
+     * FK-API отдаёт товары пачкой по категории (получить один товар их API не
+     * умеет), поэтому повторно синкаем категории поставщика, к которым
+     * относятся provider_products этого товара — обычно одну.
+     */
+    public function resync(Product $product): JsonResponse
+    {
+        if (!$product->provider_id) {
+            return response()->json(['message' => 'Товар не из синхронизации поставщика'], 422);
+        }
+
+        $provider = Provider::find($product->provider_id);
+        if (!$provider) {
+            return response()->json(['message' => 'Поставщик не найден'], 422);
+        }
+
+        $catIds = ProviderProduct::where('provider_id', $provider->id)
+            ->where('product_id', $product->id)
+            ->get()
+            ->map(fn (ProviderProduct $pp) => $pp->raw_meta['category_id'] ?? null)
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($catIds->isEmpty()) {
+            return response()->json([
+                'message' => 'Не удалось определить категорию товара у поставщика — '
+                    . 'обновите каталог поставщика целиком',
+            ], 422);
+        }
+
+        foreach ($catIds as $catId) {
+            Artisan::call('providers:sync', [
+                'provider' => $provider->code,
+                '--category' => (int) $catId,
+                '--trigger' => 'manual',
+            ]);
+        }
+
+        return response()->json(['data' => ['ok' => true, 'categories' => $catIds->count()]]);
     }
 
     // ---------------- Картинки товара ----------------

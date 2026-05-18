@@ -3,13 +3,14 @@
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
-import { ArrowLeft, Boxes, Trash2 } from 'lucide-react';
+import { ArrowLeft, Boxes, RefreshCw, Trash2 } from 'lucide-react';
 import {
   archiveAdminProduct,
   deleteAdminProductImage,
   getAdminCategories,
   getAdminProduct,
   makeAdminProductImagePrimary,
+  resyncAdminProduct,
   updateAdminProduct,
   uploadAdminProductImage,
   type AdminCategory,
@@ -27,6 +28,7 @@ export default function AdminProductDetailPage() {
   const [categories, setCategories] = useState<AdminCategory[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [resyncing, setResyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
@@ -81,6 +83,27 @@ export default function AdminProductDetailPage() {
     }
   };
 
+  const handleResync = async () => {
+    if (!product) return;
+    if (
+      !confirm(
+        'Обновить товар из данных поставщика? Будет повторно синхронизирована '
+          + 'категория этого товара. Несохранённые изменения формы потеряются.',
+      )
+    ) {
+      return;
+    }
+    setResyncing(true);
+    setError(null);
+    try {
+      await resyncAdminProduct(product.id);
+      window.location.reload();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Не удалось обновить из поставщика');
+      setResyncing(false);
+    }
+  };
+
   const update = <K extends keyof AdminProductDetail>(key: K, value: AdminProductDetail[K]) => {
     setProduct((p) => (p ? { ...p, [key]: value } : p));
   };
@@ -109,6 +132,17 @@ export default function AdminProductDetailPage() {
             <Boxes className="w-4 h-4" />
             Склад ({product.stock_available} / {product.stock_total})
           </Link>
+          {product.fulfillment_mode === 'api' && (
+            <button
+              onClick={handleResync}
+              disabled={resyncing}
+              className="h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm flex items-center gap-1 disabled:opacity-50"
+              title="Повторно синхронизировать товар из каталога поставщика"
+            >
+              <RefreshCw className="w-4 h-4" />
+              {resyncing ? 'Обновляем…' : 'Обновить из поставщика'}
+            </button>
+          )}
           <button
             onClick={handleArchive}
             className="h-10 px-3 rounded-xl border border-red-300 dark:border-red-700 text-sm text-red-600 flex items-center gap-1"

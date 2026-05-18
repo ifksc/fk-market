@@ -475,6 +475,11 @@ export async function archiveAdminProduct(id: number): Promise<void> {
   await adminFetch(`/admin/products/${id}`, { method: 'DELETE' });
 }
 
+/** Точечный ре-синк товара из синхронизации поставщика (только api-товары). */
+export async function resyncAdminProduct(id: number): Promise<void> {
+  await adminFetch(`/admin/products/${id}/resync`, { method: 'POST' });
+}
+
 // ---------- Склад ключей ----------
 export type AdminStockItem = {
   id: number;
