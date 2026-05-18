@@ -94,9 +94,21 @@ class ProductGrouper
 
             if ($pps->isEmpty()) continue; // ничего обрабатывать
 
+            // Если для этой leaf-категории уже есть групповой Product —
+            // дозаливаем непривязанные provider_products в него как новые
+            // варианты, а не плодим отдельные карточки. Закрывает кейс
+            // «новый номинал появился у поставщика после создания группы».
+            $existingGroup = Product::where('provider_id', $provider->id)
+                ->where('category_id', $cat->id)
+                ->whereNull('provider_external_id')
+                ->first();
+
             try {
                 DB::beginTransaction();
-                if ($pps->count() === 1) {
+                if ($existingGroup) {
+                    // Группа уже есть — дозаливаем номиналы в неё
+                    $result = $this->attachToGroup($existingGroup, $pps);
+                } elseif ($pps->count() === 1) {
                     // Одиночный товар — обычный Product через коннектор
                     $result = $this->connector->connect($pps->first(), ['status' => $status]);
                 } else {
@@ -234,6 +246,131 @@ class ProductGrouper
         }
 
         return ['status' => 'connected', 'product' => $product];
+    }
+
+    /**
+     * Дозаливает непривязанные provider_products в уже существующий групповой
+     * Product как новые варианты — вместо создания отдельных карточек.
+     *
+     * Вызывается из groupAll, когда для leaf-категории группа уже создана,
+     * а у поставщика появились новые номиналы. Сам товар не архивирует и
+     * ничего не удаляет — только перепривязывает pps и пересобирает варианты.
+     *
+     * @return array{status: 'connected'|'skipped', reason?: string, product?: Product}
+     */
+    protected function attachToGroup(Product $group, \Illuminate\Support\Collection $pps): array
+    {
+        // Групповой товар обязан иметь variant_select. Одиночный сюда не
+        // попадёт — отбор в groupAll идёт по whereNull('provider_external_id').
+        $hasVariantSelect = false;
+        foreach ($group->required_params ?? [] as $p) {
+            if (($p['type'] ?? '') === 'variant_select') { $hasVariantSelect = true; break; }
+        }
+        if (!$hasVariantSelect) {
+            return ['status' => 'skipped', 'reason' => "у товара #{$group->id} нет variant_select"];
+        }
+
+        $attached = 0;
+        foreach ($pps as $pp) {
+            $meta = $pp->raw_meta ?? [];
+            $priceIn = (float) ($meta['price'] ?? $pp->price_in ?? 0);
+            if ($priceIn <= 0) continue; // вариант без цены не подключаем
+            $pp->update(['product_id' => $group->id]);
+            $attached++;
+        }
+        if ($attached === 0) {
+            return ['status' => 'skipped', 'reason' => 'ни у одного нового варианта нет цены'];
+        }
+
+        // Пересобираем variant_select из всех привязанных pps (вкл. новые).
+        $this->syncGroupVariants($group);
+
+        return ['status' => 'connected', 'product' => $group];
+    }
+
+    /**
+     * Пересобирает variant_select группового Product из всех привязанных к нему
+     * provider_products (product_id = group.id): label / external_id / image и
+     * цены (price_base = минимальная закупочная, остальное по pricing rules).
+     *
+     * Прочие required_params (FK fields) не трогаются. Идемпотентно.
+     * Используется при дозаливке новых номиналов (attachToGroup) и при ручном
+     * слиянии товара в группу (products:merge-into-group).
+     *
+     * @return bool  собраны ли варианты (false — привязанных pps с ценой нет)
+     */
+    public function syncGroupVariants(Product $group): bool
+    {
+        $pps = ProviderProduct::where('product_id', $group->id)
+            ->orderBy('id')
+            ->get();
+        if ($pps->isEmpty()) {
+            return false;
+        }
+
+        $downloader = app(MediaDownloader::class);
+        $rawVariants = [];
+        foreach ($pps as $pp) {
+            $meta = $pp->raw_meta ?? [];
+            $priceIn = (float) ($meta['price'] ?? $pp->price_in ?? 0);
+            if ($priceIn <= 0) continue;
+
+            $variantImage = null;
+            if (!empty($meta['logo'])) {
+                $variantImage = $downloader->download($meta['logo'], 'fkwallet/variants') ?? $meta['logo'];
+            }
+            $rawVariants[] = [
+                'label' => (string) ($meta['name_ru'] ?? '—'),
+                'external_id' => (string) $pp->external_id,
+                'price_in' => $priceIn,
+                'image' => $variantImage,
+            ];
+        }
+        if (empty($rawVariants)) {
+            return false;
+        }
+
+        // price_base — минимальная закупочная; price_final по pricing rules.
+        $minPriceIn = min(array_column($rawVariants, 'price_in'));
+        $group->price_base = $minPriceIn;
+        $group->price_final = PriceCalculator::compute($group);
+        $factor = $minPriceIn > 0 ? ((float) $group->price_final) / $minPriceIn : 1.0;
+
+        $variantRows = array_map(fn ($v) => [
+            'label' => $v['label'],
+            'external_id' => $v['external_id'],
+            'price' => round($v['price_in'] * $factor, 2),
+            'image' => $v['image'],
+        ], $rawVariants);
+        usort($variantRows, fn ($a, $b) => $a['price'] <=> $b['price']);
+        $variantRows = array_values($variantRows);
+
+        // Кладём собранные варианты в существующий variant_select; если его
+        // почему-то нет — добавляем первым элементом.
+        $params = $group->required_params ?? [];
+        $found = false;
+        foreach ($params as $i => $p) {
+            if (($p['type'] ?? '') === 'variant_select') {
+                $params[$i]['variants'] = $variantRows;
+                $found = true;
+                break;
+            }
+        }
+        if (!$found) {
+            array_unshift($params, [
+                'name' => 'variant',
+                'label' => self::variantLabelFor($group->category),
+                'type' => 'variant_select',
+                'required' => true,
+                'variants' => $variantRows,
+            ]);
+        }
+
+        $group->required_params = $params;
+        $group->variants_count = max(1, count($variantRows));
+        $group->save();
+
+        return true;
     }
 
     /**
