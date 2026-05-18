@@ -3,6 +3,7 @@
 namespace App\Services\Providers;
 
 use App\Models\Product;
+use App\Models\ProductImage;
 use App\Models\Provider;
 use App\Models\ProviderProduct;
 use App\Services\PriceCalculator;
@@ -175,6 +176,118 @@ class ProductRefresher
         }
 
         return $stats;
+    }
+
+    /**
+     * Точечно перечитывает «мету» одного товара из свежих данных поставщика:
+     * name, short_description, description и первичную картинку.
+     *
+     * Обычный refresh() этого НЕ делает намеренно — чтобы фоновый cron-синк
+     * не затирал ручные правки названий/описаний. Этот метод вызывается только
+     * из ручной кнопки «Обновить из поставщика» (Admin\ProductController::resync),
+     * где перезапись провайдерскими данными — осознанное действие админа.
+     *
+     * Вызывать ПОСЛЕ providers:sync — он обновляет provider_products.raw_meta
+     * и categories (имя/обложку), из которых здесь и берутся данные.
+     *
+     * @return bool  были ли изменения
+     */
+    public function refreshMeta(Product $product): bool
+    {
+        if (!$product->provider_id) {
+            return false;
+        }
+
+        // Канонический provider_product — первый по id (как в ProductGrouper).
+        $primary = ProviderProduct::where('provider_id', $product->provider_id)
+            ->where('product_id', $product->id)
+            ->orderBy('id')
+            ->first();
+        if (!$primary) {
+            return false;
+        }
+
+        $meta = $primary->raw_meta ?? [];
+        $changed = false;
+
+        // --- name ---
+        // Групповой товар (provider_external_id = NULL) — имя leaf-категории FK;
+        // одиночный — name_ru самого товара. Так же, как при создании.
+        $newName = is_null($product->provider_external_id)
+            ? ($product->category?->name ?: null)
+            : (isset($meta['name_ru']) ? trim((string) $meta['name_ru']) : null);
+        if ($newName !== null && $newName !== '' && $newName !== $product->name) {
+            $product->name = $newName;
+            $changed = true;
+        }
+
+        // --- описания --- (нормализуем HTML так же, как ProductGrouper при создании)
+        $rawShort = (string) ($meta['description_ru'] ?? '');
+        $rawDesc = trim(
+            $rawShort .
+            (isset($meta['help_description_ru']) ? "\n\n" . $meta['help_description_ru'] : ''),
+        );
+        $shortDesc = mb_substr(ProductGrouper::normalizeText($rawShort), 0, 500) ?: null;
+        $description = ProductGrouper::normalizeText($rawDesc) ?: null;
+        if ($shortDesc !== $product->short_description) {
+            $product->short_description = $shortDesc;
+            $changed = true;
+        }
+        if ($description !== $product->description) {
+            $product->description = $description;
+            $changed = true;
+        }
+
+        if ($changed) {
+            $product->save();
+        }
+
+        // --- первичная картинка ---
+        $imageChanged = $this->refreshPrimaryImage($product, $meta);
+
+        return $changed || $imageChanged;
+    }
+
+    /**
+     * Обновляет первичную картинку товара из данных поставщика.
+     * Источник: обложка leaf-категории FK (для группового), фолбэк — logo
+     * варианта. Заменяется только первичная картинка; вручную добавленные
+     * прочие изображения не трогаются.
+     */
+    protected function refreshPrimaryImage(Product $product, array $meta): bool
+    {
+        $remote = null;
+        if (is_null($product->provider_external_id)) {
+            $remote = $product->category?->image_url ?: null;
+        }
+        if (!$remote && !empty($meta['logo'])) {
+            $remote = (string) $meta['logo'];
+        }
+        if (!$remote) {
+            return false;
+        }
+
+        // Локализуем картинку; при ошибке скачивания оставляем URL CDN провайдера.
+        $local = app(MediaDownloader::class)->download($remote, 'fkwallet/products') ?? $remote;
+
+        $primary = ProductImage::where('product_id', $product->id)
+            ->where('is_primary', true)
+            ->first();
+        if ($primary) {
+            if ($primary->url !== $local) {
+                $primary->update(['url' => $local]);
+                return true;
+            }
+            return false;
+        }
+
+        // Первичной картинки не было — создаём.
+        ProductImage::create([
+            'product_id' => $product->id,
+            'url' => $local,
+            'is_primary' => true,
+        ]);
+        return true;
     }
 
     /** Считает сумму variants по всем variant_select в required_params */
