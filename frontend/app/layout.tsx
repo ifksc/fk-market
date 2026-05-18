@@ -67,6 +67,18 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </div>
         </noscript>
         <YandexMetrikaHits />
+
+        {/* Google Analytics 4 (G-Y8GJ3K7G5L) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-Y8GJ3K7G5L"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-Y8GJ3K7G5L');`}
+        </Script>
       </body>
     </html>
   );

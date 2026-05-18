@@ -6,18 +6,19 @@ import type { NextConfig } from 'next';
 //
 // Почему script-src содержит 'unsafe-inline': страницы кэшируются (ISR/SSG),
 // поэтому per-request nonce невозможен — он был бы одинаковым на всех копиях
-// из кэша. Inline-скрипты нужны Next.js (RSC-гидрация), JSON-LD и счётчику
-// Яндекс.Метрики. Внешние домены — tag.js Метрики и вебвизор.
+// из кэша. Inline-скрипты нужны Next.js (RSC-гидрация), JSON-LD и счётчикам
+// Яндекс.Метрики и Google Analytics. Внешние домены — Метрика (+вебвизор)
+// и Google (googletagmanager + google-analytics).
 //
 // Когда нарушений в консоли не останется — заголовок можно переименовать в
 // `Content-Security-Policy` (enforce) отдельной задачей.
 const cspReportOnly = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://yastatic.net",
+  "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://yastatic.net https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: https:",
   "font-src 'self' data:",
-  "connect-src 'self' https://mc.yandex.ru https://mc.webvisor.org https://yastatic.net",
+  "connect-src 'self' https://mc.yandex.ru https://mc.webvisor.org https://yastatic.net https://www.googletagmanager.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com",
   "frame-src 'self' https://mc.yandex.ru",
   "object-src 'none'",
   "base-uri 'self'",
