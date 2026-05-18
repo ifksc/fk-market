@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Send } from 'lucide-react';
 import { LogoMark } from './Logo';
 // Номер сборки штампуется в build-info.json пайплайном деплоя (GitHub Actions).
 // Локально/в репозитории — дефолт "0".
@@ -17,6 +18,15 @@ export function Footer() {
             Магазин цифровых товаров: ключи, коды и пополнения с автоматической
             выдачей и гарантией замены.
           </p>
+          <a
+            href="https://t.me/fk_market1"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="mt-4 inline-flex items-center gap-2 h-9 px-3 rounded-lg bg-[#229ED9] text-white text-xs font-medium hover:opacity-90 transition"
+          >
+            <Send className="w-4 h-4" />
+            Telegram-канал
+          </a>
         </div>
         <div>
           <div className="font-semibold mb-3">Магазин</div>
