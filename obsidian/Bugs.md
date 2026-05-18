@@ -24,6 +24,8 @@ _Пусто._
 <details>
 <summary>История фиксов</summary>
 
+- 2026-05-18 — Новый номинал у поставщика становился отдельной карточкой вместо варианта группы (кейс `xbox-wallet-code-ssha10`). Корень: `ProductGrouper::groupAll` создавал Product'ы только из непривязанных `provider_products`, не умел дозаливать варианты в существующую группу. Фикс (PR #132): `groupAll` дозаливает непривязанные pps в группу (`attachToGroup`/`syncGroupVariants`); команда `products:merge-into-group` для разовой починки уже-существующих дублей (архивирует дубль). См. [[Журнал решений#2026-05-18]].
+- 2026-05-18 — Статус заказа `fulfilling` показывался в ЛК по-английски; в Freekassa уходил Docker-IP `172.18.0.1` вместо IP покупателя. Фикс (PR #128): добавлены русские лейблы статусов; IP берётся из `DDG-Connecting-IP`. Позже вынесено в хелпер `ClientIp::resolve` (PR #129).
 - 2026-05-18 — Telegram egress-прокси (инфраструктурная задача, не баг). Прод-сервер из Yandex Cloud ненадёжно достукивался до Telegram API. Поднят 3proxy на `37.220.85.24` (HTTP CONNECT, ACL только `api.telegram.org`, авторизация, UFW для IP прода). Подробности — [[Журнал решений#2026-05-17]] (раздел egress-прокси). Решает сбои Telegram для блога Ф5; в перспективе туда же увести и Telegram-OAuth.
 - 2026-05-16 — Страница заказа в ЛК падала с `Undefined variable $reviewedProductIds` (регресс фичи отзывов). Корень: замыкание `->map(function ($it) {...})` в `Me/OrderController::serializeOrder` использовало переменную без захвата `use()`. `php -l` не ловит — это runtime, не синтаксис. Фикс: `use ($reviewedProductIds)`.
 
