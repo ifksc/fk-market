@@ -155,6 +155,7 @@ Route::middleware(['auth:sanctum', AdminIpWhitelistMiddleware::class, 'admin', N
     Route::get('/products/{product:id}', [AdminProduct::class, 'show']);
     Route::put('/products/{product:id}', [AdminProduct::class, 'update']);
     Route::delete('/products/{product:id}', [AdminProduct::class, 'destroy']);
+    Route::post('/products/{product:id}/resync', [AdminProduct::class, 'resync']);
     Route::post('/products/{product:id}/images', [AdminProduct::class, 'uploadImage']);
     Route::put('/products/{product:id}/images/{image:id}/primary', [AdminProduct::class, 'makeImagePrimary']);
     Route::delete('/products/{product:id}/images/{image:id}', [AdminProduct::class, 'deleteImage']);
