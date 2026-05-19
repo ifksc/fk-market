@@ -133,6 +133,9 @@ class ProductController extends Controller
             'id' => $p->id,
             'slug' => $p->slug,
             'name' => $p->name,
+            // Статус нужен фронту карточки товара: archived/draft товар
+            // остаётся видимым, но кнопки покупки блокируются.
+            'status' => $p->status,
             'short_description' => $p->short_description,
             'price' => (float) $p->price_final,
             'price_old' => $p->price_old ? (float) $p->price_old : null,

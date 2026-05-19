@@ -26,6 +26,8 @@ export type Product = {
   id: number;
   slug: string;
   name: string;
+  // archived/draft товар остаётся видимым, но непокупаемым.
+  status: 'active' | 'draft' | 'archived';
   short_description: string | null;
   price: number;
   price_old: number | null;
