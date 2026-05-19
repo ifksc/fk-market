@@ -24,6 +24,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
   const isEdit = !!initial;
 
   const [title, setTitle] = useState(initial?.title ?? '');
+  const [metaTitle, setMetaTitle] = useState(initial?.meta_title ?? '');
   const [slug, setSlug] = useState(initial?.slug ?? '');
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? '');
   const [metaDescription, setMetaDescription] = useState(initial?.meta_description ?? '');
@@ -60,6 +61,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
     () =>
       JSON.stringify({
         title: initial?.title ?? '',
+        metaTitle: initial?.meta_title ?? '',
         slug: initial?.slug ?? '',
         excerpt: initial?.excerpt ?? '',
         metaDescription: initial?.meta_description ?? '',
@@ -79,6 +81,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
     () =>
       JSON.stringify({
         title,
+        metaTitle,
         slug,
         excerpt,
         metaDescription,
@@ -90,7 +93,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
         relatedPosts,
         faq,
       }),
-    [title, slug, excerpt, metaDescription, content, author, status, tags, relatedProducts, relatedPosts, faq],
+    [title, metaTitle, slug, excerpt, metaDescription, content, author, status, tags, relatedProducts, relatedPosts, faq],
   );
 
   // На монтировании: есть ли сохранённый черновик, отличный от исходных данных.
@@ -123,6 +126,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
     try {
       const d = JSON.parse(restorable) as Record<string, unknown>;
       setTitle(typeof d.title === 'string' ? d.title : '');
+      setMetaTitle(typeof d.metaTitle === 'string' ? d.metaTitle : '');
       setSlug(typeof d.slug === 'string' ? d.slug : '');
       setExcerpt(typeof d.excerpt === 'string' ? d.excerpt : '');
       setMetaDescription(typeof d.metaDescription === 'string' ? d.metaDescription : '');
@@ -192,6 +196,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
     try {
       const payload: AdminBlogInput = {
         title: title.trim(),
+        meta_title: metaTitle.trim() || null,
         slug: slug.trim() || undefined,
         excerpt: excerpt.trim() || null,
         meta_description: metaDescription.trim() || null,
@@ -415,6 +420,20 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
               maxLength={300}
               className={`${areaCls} h-20`}
             />
+          </div>
+          <div>
+            <label className={labelCls}>SEO-заголовок (title для выдачи)</label>
+            <input
+              value={metaTitle}
+              onChange={(e) => setMetaTitle(e.target.value)}
+              maxLength={70}
+              placeholder="Пусто — берётся обычный заголовок статьи"
+              className={inputCls}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              {metaTitle.length}/70 — оптимально ≤ 60. Влияет только на{' '}
+              &lt;title&gt; в поисковой выдаче, не на заголовок (H1) на странице.
+            </p>
           </div>
           <div>
             <label className={labelCls}>Meta description (для поисковиков)</label>

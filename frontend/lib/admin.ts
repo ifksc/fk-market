@@ -1160,6 +1160,7 @@ export type AdminBlogPost = {
   id: number;
   slug: string;
   title: string;
+  meta_title: string | null;
   meta_description: string | null;
   excerpt: string | null;
   content: string | null;
@@ -1179,6 +1180,7 @@ export type AdminBlogPost = {
 export type AdminBlogInput = Partial<{
   title: string;
   slug: string;
+  meta_title: string | null;
   meta_description: string | null;
   excerpt: string | null;
   content: string | null;

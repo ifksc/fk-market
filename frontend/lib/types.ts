@@ -123,6 +123,8 @@ export type BlogPostCard = {
 
 /** Полная статья — страница /blog/[slug]. */
 export type BlogPostFull = BlogPostCard & {
+  // SEO-заголовок (<title> в выдаче). Пусто — берётся обычный title.
+  meta_title: string | null;
   meta_description: string | null;
   content: string | null;
   related_products: string[];
