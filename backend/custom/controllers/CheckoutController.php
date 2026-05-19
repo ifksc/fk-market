@@ -84,7 +84,32 @@ class CheckoutController extends Controller
                     }
                 }
             } else {
-                $price = (float) $product->price_final;
+                // Групповой товар (variant_select): цена — у ВЫБРАННОГО
+                // варианта. product.price_final — это цена самого дешёвого
+                // варианта группы; отдать её на оплату = недосчитать заказ
+                // на разницу (покупатель платит меньше выбранного товара).
+                $variantParam = $this->findVariantParam($product);
+                if ($variantParam) {
+                    $key = (string) ($variantParam['name'] ?? 'variant');
+                    $selectedLabel = is_array($params) ? (string) ($params[$key] ?? '') : '';
+                    $variant = null;
+                    if ($selectedLabel !== '') {
+                        foreach ($variantParam['variants'] ?? [] as $v) {
+                            if ((string) ($v['label'] ?? '') === $selectedLabel) {
+                                $variant = $v;
+                                break;
+                            }
+                        }
+                    }
+                    if (!$variant) {
+                        return response()->json([
+                            'error' => "Выберите вариант товара «{$product->name}»",
+                        ], 422);
+                    }
+                    $price = (float) ($variant['price'] ?? 0);
+                } else {
+                    $price = (float) $product->price_final;
+                }
             }
 
             $resolvedItems[] = [
@@ -203,6 +228,15 @@ class CheckoutController extends Controller
     {
         foreach ($product->required_params ?? [] as $p) {
             if (($p['type'] ?? '') === 'amount_input') return $p;
+        }
+        return null;
+    }
+
+    /** Находит блок variant_select в required_params, если есть. */
+    private function findVariantParam(Product $product): ?array
+    {
+        foreach ($product->required_params ?? [] as $p) {
+            if (($p['type'] ?? '') === 'variant_select') return $p;
         }
         return null;
     }
