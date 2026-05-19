@@ -115,9 +115,13 @@ export function ProductBuyBox({ product }: { product: ProductDetail }) {
     return true;
   };
 
+  // archived/draft товар: карточка видна, но купить нельзя. Бэкенд /checkout
+  // тоже отклоняет неактивные товары — это второй (клиентский) барьер.
+  const unavailable = product.status !== 'active';
+
   // Кнопки заблокированы, пока валидация Steam в процессе или поле пустое/невалидное.
   // Это закрывает race-condition: пока debounce-проверка не успела пройти, ничего не покупаем.
-  const buyDisabled = !validate() || (steamParam ? steamCheck === 'pending' : false);
+  const buyDisabled = unavailable || !validate() || (steamParam ? steamCheck === 'pending' : false);
   const isTopup = !!amountParam;
 
   const buildCartItem = () => ({
@@ -134,6 +138,7 @@ export function ProductBuyBox({ product }: { product: ProductDetail }) {
   });
 
   const handleAddToCart = () => {
+    if (unavailable) return;
     if (!validate()) {
       alert('Заполните все обязательные параметры товара');
       return;
@@ -144,6 +149,7 @@ export function ProductBuyBox({ product }: { product: ProductDetail }) {
   };
 
   const handleBuyNow = () => {
+    if (unavailable) return;
     if (!validate()) {
       alert('Заполните все обязательные параметры товара');
       return;
@@ -379,26 +385,34 @@ export function ProductBuyBox({ product }: { product: ProductDetail }) {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={handleBuyNow}
-          disabled={buyDisabled}
-          className="mt-5 w-full h-12 rounded-xl fk-grad-btn font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {steamParam && steamCheck === 'pending' ? 'Проверяем логин…' : 'Купить сейчас'}
-        </button>
-        <button
-          type="button"
-          onClick={handleAddToCart}
-          disabled={buyDisabled}
-          className={`mt-2 w-full h-12 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
-            added
-              ? 'bg-accent-500 text-white border border-accent-500'
-              : 'border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
-          }`}
-        >
-          {added ? '✓ Добавлено в корзину' : 'В корзину'}
-        </button>
+        {unavailable ? (
+          <div className="mt-5 rounded-xl border border-amber-300 dark:border-amber-700/60 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-800 dark:text-amber-300">
+            Товар снят с продажи и недоступен для покупки.
+          </div>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={handleBuyNow}
+              disabled={buyDisabled}
+              className="mt-5 w-full h-12 rounded-xl fk-grad-btn font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {steamParam && steamCheck === 'pending' ? 'Проверяем логин…' : 'Купить сейчас'}
+            </button>
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={buyDisabled}
+              className={`mt-2 w-full h-12 rounded-xl font-medium transition disabled:opacity-50 disabled:cursor-not-allowed ${
+                added
+                  ? 'bg-accent-500 text-white border border-accent-500'
+                  : 'border border-gray-300 dark:border-slate-700 hover:bg-gray-50 dark:hover:bg-slate-800'
+              }`}
+            >
+              {added ? '✓ Добавлено в корзину' : 'В корзину'}
+            </button>
+          </>
+        )}
 
         <div className="mt-5 space-y-2 text-xs text-gray-500 dark:text-slate-400">
           <div className="flex items-center gap-2">
