@@ -80,17 +80,26 @@ export default function AdminDashboardPage() {
         {/* KPI */}
         <section className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { label: `Выручка · ${periodLabel}`, value: stats ? money(stats.revenue) : '—', sub: stats ? `сегодня: ${money(stats.revenue_today)}` : '' },
-            { label: 'Заказов', value: stats ? stats.orders.toLocaleString('ru') : '—', sub: stats ? `сегодня: ${stats.orders_today}` : '' },
-            { label: 'Средний чек', value: stats ? money(stats.avg_check) : '—', sub: 'выручка / заказы' },
-            { label: 'Маржа', value: stats ? money(stats.margin) : '—', sub: 'выручка − закупка' },
-          ].map((k) => (
-            <div key={k.label} className={`${card} p-5`}>
-              <div className="text-xs text-slate-500 mb-2">{k.label}</div>
-              <div className="text-2xl font-extrabold">{loading ? '…' : k.value}</div>
-              <div className="text-xs text-slate-500 mt-2">{k.sub}</div>
-            </div>
-          ))}
+            { label: `Выручка · ${periodLabel}`, value: stats ? money(stats.revenue) : '—', sub: stats ? `сегодня: ${money(stats.revenue_today)}` : '', href: null as string | null },
+            { label: 'Заказов', value: stats ? stats.orders.toLocaleString('ru') : '—', sub: stats ? `сегодня: ${stats.orders_today}` : '', href: null },
+            { label: 'Средний чек', value: stats ? money(stats.avg_check) : '—', sub: 'выручка / заказы', href: null },
+            // Маржа кликабельна — ведёт в отчёт по операциям с тем же периодом.
+            { label: 'Маржа', value: stats ? money(stats.margin) : '—', sub: 'выручка − закупка · подробнее →', href: `/admin/finance?period=${period}` },
+          ].map((k) =>
+            k.href ? (
+              <Link key={k.label} href={k.href} className={`${card} p-5 hover:border-brand-400 dark:hover:border-brand-500 transition`}>
+                <div className="text-xs text-slate-500 mb-2">{k.label}</div>
+                <div className="text-2xl font-extrabold">{loading ? '…' : k.value}</div>
+                <div className="text-xs text-slate-500 mt-2">{k.sub}</div>
+              </Link>
+            ) : (
+              <div key={k.label} className={`${card} p-5`}>
+                <div className="text-xs text-slate-500 mb-2">{k.label}</div>
+                <div className="text-2xl font-extrabold">{loading ? '…' : k.value}</div>
+                <div className="text-xs text-slate-500 mt-2">{k.sub}</div>
+              </div>
+            ),
+          )}
         </section>
 
         {/* График + статусы */}

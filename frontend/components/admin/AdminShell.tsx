@@ -19,6 +19,7 @@ import {
   ShieldCheck,
   Star,
   Tag,
+  TrendingUp,
   BadgePercent,
   Users,
 } from 'lucide-react';
@@ -44,6 +45,7 @@ type NavItem = {
 
 const NAV: NavItem[] = [
   { href: '/admin', label: 'Дашборд', icon: LayoutIcon },
+  { href: '/admin/finance', label: 'Финансы', icon: TrendingUp },
   { href: '/admin/products', label: 'Товары', icon: Package },
   { href: '/admin/categories', label: 'Категории', icon: FolderTree },
   { href: '/admin/stock', label: 'Склад ключей', icon: Boxes },

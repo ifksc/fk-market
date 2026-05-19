@@ -1260,3 +1260,52 @@ export async function uploadAdminBlogCover(id: number, file: File): Promise<Admi
   const json = (await res.json()) as { data: AdminBlogPost };
   return json.data;
 }
+
+// ---------- Финансы: отчёт маржи по операциям ----------
+
+export type FinanceItem = {
+  order_id: number;
+  order_public_number: string;
+  order_status: string;
+  paid_at: string | null;
+  product: { id: number; name: string | null; slug: string | null };
+  variant_label: string | null;
+  qty: number;
+  price: number;       // продажа за единицу
+  price_in: number;    // закупка за единицу
+  total: number;       // price × qty
+  cost: number;        // price_in × qty
+  margin: number;      // total − cost
+  margin_pct: number;  // margin / total × 100
+};
+
+export type FinanceSummary = {
+  revenue: number;
+  cost: number;
+  margin: number;
+  margin_pct: number;
+  items_count: number;
+};
+
+export type FinanceQuery = {
+  period?: 'today' | '7d' | '30d' | 'all';
+  from?: string;
+  to?: string;
+  q?: string;
+  sort?: 'date_desc' | 'date_asc' | 'margin_desc' | 'margin_asc';
+  page?: number;
+  per_page?: number;
+};
+
+export async function getAdminFinance(
+  query: FinanceQuery = {},
+): Promise<Paginated<FinanceItem> & { summary: FinanceSummary }> {
+  const params = new URLSearchParams();
+  Object.entries(query).forEach(([k, v]) => {
+    if (v !== undefined && v !== null && v !== '') params.set(k, String(v));
+  });
+  const qs = params.toString();
+  return adminFetch<Paginated<FinanceItem> & { summary: FinanceSummary }>(
+    `/admin/finance${qs ? `?${qs}` : ''}`,
+  );
+}
