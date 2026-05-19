@@ -236,9 +236,16 @@ export default function AdminProductDetailPage() {
                   type="number"
                   step="0.01"
                   value={product.price_old ?? ''}
+                  disabled={product.fulfillment_mode === 'api'}
                   onChange={(e) => update('price_old', e.target.value === '' ? null : Number(e.target.value))}
-                  className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950"
+                  className="w-full h-11 px-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 disabled:opacity-60 disabled:cursor-not-allowed"
                 />
+                {product.fulfillment_mode === 'api' && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Управляется автоматически: при синхронизации цен поставщика скидка
+                    появляется, если цена снизилась, и убирается, когда вырастает.
+                  </p>
+                )}
               </Field>
             </div>
             <div className="mt-3 text-sm text-slate-500">
