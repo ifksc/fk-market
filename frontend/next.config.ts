@@ -1,8 +1,7 @@
 import type { NextConfig } from 'next';
 
-// Content-Security-Policy в режиме Report-Only — браузер НЕ блокирует
-// нарушения, только пишет их в консоль. Так мы собираем реальную картину
-// (что грузится со страниц) без риска что-то сломать.
+// Content-Security-Policy в режиме enforce — браузер блокирует ресурсы,
+// не разрешённые политикой.
 //
 // Почему script-src содержит 'unsafe-inline': страницы кэшируются (ISR/SSG),
 // поэтому per-request nonce невозможен — он был бы одинаковым на всех копиях
@@ -10,9 +9,10 @@ import type { NextConfig } from 'next';
 // Яндекс.Метрики и Google Analytics. Внешние домены — Метрика (+вебвизор)
 // и Google (googletagmanager + google-analytics).
 //
-// Когда нарушений в консоли не останется — заголовок можно переименовать в
-// `Content-Security-Policy` (enforce) отдельной задачей.
-const cspReportOnly = [
+// OAuth (VK / Яндекс / Telegram) работает через top-level redirect
+// (window.location → id.vk.com / oauth.yandex.ru / oauth.telegram.org) —
+// CSP навигацию не ограничивает, отдельных директив для него не нужно.
+const csp = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' https://mc.yandex.ru https://yastatic.net https://www.googletagmanager.com",
   "style-src 'self' 'unsafe-inline'",
@@ -61,10 +61,10 @@ const nextConfig: NextConfig = {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=(), browsing-topics=()',
           },
-          // CSP пока в режиме Report-Only — собираем нарушения, не блокируем.
+          // CSP в режиме enforce — ресурсы вне политики блокируются.
           {
-            key: 'Content-Security-Policy-Report-Only',
-            value: cspReportOnly,
+            key: 'Content-Security-Policy',
+            value: csp,
           },
         ],
       },
