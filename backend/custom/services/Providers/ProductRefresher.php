@@ -25,6 +25,12 @@ use App\Services\PriceCalculator;
 class ProductRefresher
 {
     /**
+     * Порог снижения цены (%), ниже которого скидку не показываем —
+     * анти-дребезг: цены поставщика дёргаются на копейки.
+     */
+    private const PRICE_DROP_THRESHOLD_PCT = 1.0;
+
+    /**
      * @param  array<string,mixed>  $opts
      *      update_prices (bool, default true)
      *      hide_missing  (bool, default true)
@@ -139,8 +145,11 @@ class ProductRefresher
             if ($updatePrices && $hasLive && $minPriceIn !== null) {
                 $oldBase = (float) $product->price_base;
                 if (abs($oldBase - $minPriceIn) > 0.001) {
+                    $oldFinal = (float) $product->price_final;
                     $product->price_base = $minPriceIn;
                     $product->price_final = PriceCalculator::compute($product);
+                    // Авто-скидка: цена упала → фиксируем «старую» цену.
+                    $this->adjustPriceOld($product, $oldFinal, (float) $product->price_final);
                     $changed = true;
                 }
 
@@ -288,6 +297,41 @@ class ProductRefresher
             'is_primary' => true,
         ]);
         return true;
+    }
+
+    /**
+     * Авто-управление `price_old` при изменении цены поставщиком.
+     *
+     * Логика (договорённость 2026-05-19): для синк-товаров `price_old`
+     * целиком под управлением авто-логики, ручное поле не используется.
+     *   • Цена упала заметно (> порога) — пишем «старую» цену для показа
+     *     скидки; `price_old` хранит МАКСИМУМ недавней цены — при серии
+     *     снижений не понижается, скидка отражает реальное падение.
+     *   • Текущая цена доросла до `price_old` (скидки больше нет) — чистим.
+     *   • Мелкое колебание / рост, но цена ещё ниже `price_old` — не трогаем.
+     */
+    private function adjustPriceOld(Product $product, float $oldFinal, float $newFinal): void
+    {
+        $priceOld = $product->price_old !== null ? (float) $product->price_old : null;
+
+        // Скидки больше нет: цена догнала/перегнала «старую» → чистим.
+        if ($priceOld !== null && $newFinal >= $priceOld - 0.001) {
+            $product->price_old = null;
+            return;
+        }
+
+        // Заметное снижение → фиксируем «старую» цену (максимум недавней).
+        $threshold = $oldFinal * (1 - self::PRICE_DROP_THRESHOLD_PCT / 100);
+        if ($newFinal < $threshold) {
+            $candidate = max($priceOld ?? 0.0, $oldFinal);
+            if ($candidate > $newFinal) {
+                $product->price_old = round($candidate, 2);
+            }
+            return;
+        }
+
+        // Иначе (мелкое колебание / небольшой рост со всё ещё реальной
+        // скидкой) — `price_old` оставляем как есть.
     }
 
     /** Считает сумму variants по всем variant_select в required_params */
