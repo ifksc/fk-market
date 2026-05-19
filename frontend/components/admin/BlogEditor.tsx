@@ -7,6 +7,7 @@ import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
 import {
   createAdminBlogPost,
   updateAdminBlogPost,
+  deleteAdminBlogPost,
   uploadAdminBlogCover,
   publishBlogToTelegram,
   type AdminBlogInput,
@@ -45,6 +46,7 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
   const [tgError, setTgError] = useState<string | null>(null);
 
   const [submitting, setSubmitting] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -228,6 +230,26 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!initial) return;
+    if (!confirm(`Удалить статью «${initial.title}»? Действие необратимо.`)) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await deleteAdminBlogPost(initial.id);
+      // Статьи больше нет — локальный черновик тоже чистим.
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
+      }
+      router.push('/admin/blog');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Не удалось удалить статью');
+      setDeleting(false);
+    }
+  };
+
   const onCoverChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !initial) return;
@@ -278,10 +300,22 @@ export function BlogEditor({ initial }: { initial: AdminBlogPost | null }) {
               Черновик сохранён локально {savedAt.toLocaleTimeString('ru-RU')}
             </span>
           )}
+          {isEdit && (
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={deleting || submitting}
+              className="h-10 px-3 rounded-xl border border-red-300 dark:border-red-700 text-sm text-red-600 flex items-center gap-2 disabled:opacity-50"
+              title="Удалить статью безвозвратно"
+            >
+              <Trash2 className="w-4 h-4" />
+              {deleting ? 'Удаляем…' : 'Удалить'}
+            </button>
+          )}
           <button
             type="submit"
             form="blog-form"
-            disabled={submitting}
+            disabled={submitting || deleting}
             className="h-10 px-4 rounded-xl fk-grad-btn text-sm font-medium flex items-center gap-2 disabled:opacity-50"
           >
             <Save className="w-4 h-4" />
