@@ -168,6 +168,7 @@ class BlogController extends Controller
         return $request->validate([
             'title' => [...$sometimes, 'string', 'max:200'],
             'slug' => ['nullable', 'string', 'max:200'],
+            'meta_title' => ['nullable', 'string', 'max:70'],
             'meta_description' => ['nullable', 'string', 'max:255'],
             'excerpt' => ['nullable', 'string', 'max:300'],
             'content' => ['nullable', 'string', 'max:100000'],
@@ -194,6 +195,7 @@ class BlogController extends Controller
             'id' => $p->id,
             'slug' => $p->slug,
             'title' => $p->title,
+            'meta_title' => $p->meta_title,
             'meta_description' => $p->meta_description,
             'excerpt' => $p->excerpt,
             'content' => $p->content,

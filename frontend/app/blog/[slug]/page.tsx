@@ -43,8 +43,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const description = (post.meta_description || post.excerpt || post.title).slice(0, 200);
   const canonical = `/blog/${post.slug}`;
+  // SEO-заголовок (<title>): если задан meta_title — используем его как есть
+  // (absolute, без суффикса « — FK.market»), иначе обычный title + шаблон.
+  const seoTitle = post.meta_title?.trim();
   return {
-    title: post.title,
+    title: seoTitle ? { absolute: seoTitle } : post.title,
     description,
     alternates: { canonical },
     openGraph: {

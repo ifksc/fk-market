@@ -45,6 +45,7 @@ class BlogController extends Controller
 
         return response()->json([
             'data' => array_merge($this->card($post), [
+                'meta_title' => $post->meta_title,
                 'meta_description' => $post->meta_description,
                 'content' => $post->content,
                 'related_products' => $post->related_products ?? [],
