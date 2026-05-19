@@ -43,7 +43,12 @@ class TelegramChannelService
         $url = self::SITE . '/blog/' . $post->slug;
         $caption = $this->buildCaption($post, $url);
 
-        $request = Http::timeout(25)->retry(2, 1000, fn ($e) => $e instanceof ConnectionException);
+        // retry — только при сетевых сбоях (ConnectionException). throw:false —
+        // HTTP-ошибки Telegram (403/400 и т.п.) НЕ мечем исключением, а
+        // возвращаем ответ: иначе общий catch ниже подменял реальную причину
+        // («Forbidden: bot is not a member…») на «Сеть недоступна».
+        $request = Http::timeout(25)
+            ->retry(2, 1000, fn ($e) => $e instanceof ConnectionException, throw: false);
 
         $proxy = (string) env('TELEGRAM_HTTP_PROXY');
         if ($proxy !== '') {
