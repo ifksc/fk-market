@@ -8,6 +8,7 @@ use App\Models\OrderItem;
 use App\Models\PaymentMethod;
 use App\Models\Product;
 use App\Models\Provider;
+use App\Models\ProviderProduct;
 use App\Services\ClientIp;
 use App\Services\FreekassaGateway;
 use App\Services\PromocodeService;
@@ -56,6 +57,11 @@ class CheckoutController extends Controller
             $product = $products->get($row['product_id']);
             $qty = (int) $row['qty'];
             $params = $row['params'] ?? null;
+
+            // Закупочная цена позиции (для расчёта маржи в OrderItem.price_in).
+            // По умолчанию — product.price_base (минимальная по группе/одиночному);
+            // для вариантного товара уточним по реальному варианту ниже.
+            $priceIn = (float) $product->price_base;
 
             $amountParam = $this->findAmountParam($product);
             if ($amountParam) {
@@ -107,6 +113,20 @@ class CheckoutController extends Controller
                         ], 422);
                     }
                     $price = (float) ($variant['price'] ?? 0);
+
+                    // Закупка варианта — из provider_products по external_id.
+                    // product.price_base — это закупка САМОГО ДЕШЁВОГО варианта,
+                    // оставлять её для не-мин вариантов = занижать закупку и
+                    // завышать маржу в отчёте.
+                    $extId = (string) ($variant['external_id'] ?? '');
+                    if ($extId !== '' && $product->provider_id) {
+                        $variantPriceIn = ProviderProduct::where('provider_id', $product->provider_id)
+                            ->where('external_id', $extId)
+                            ->value('price_in');
+                        if ($variantPriceIn !== null) {
+                            $priceIn = (float) $variantPriceIn;
+                        }
+                    }
                 } else {
                     $price = (float) $product->price_final;
                 }
@@ -116,6 +136,7 @@ class CheckoutController extends Controller
                 'product' => $product,
                 'qty' => $qty,
                 'price' => $price,
+                'price_in' => $priceIn,
                 'total' => $price * $qty,
                 'params' => $params,
             ];
@@ -168,7 +189,7 @@ class CheckoutController extends Controller
                     'seller_id' => $item['product']->seller_id,
                     'qty' => $item['qty'],
                     'price' => $item['price'],
-                    'price_in' => $item['product']->price_base,
+                    'price_in' => $item['price_in'],
                     'total' => $item['total'],
                     'params' => $item['params'],
                     'fulfillment_status' => 'pending',
