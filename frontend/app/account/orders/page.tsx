@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { ChevronRight, Clock, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/components/AuthProvider';
 import { AuthError } from '@/lib/auth';
-import { listMyOrders, type MyOrderSummary } from '@/lib/account';
+import { listMyOrders, orderStatusMeta, type MyOrderSummary } from '@/lib/account';
 
 export default function MyOrdersPage() {
   const router = useRouter();
@@ -85,7 +85,7 @@ export default function MyOrdersPage() {
 }
 
 function OrderRow({ order }: { order: MyOrderSummary }) {
-  const meta = statusMeta(order.status);
+  const meta = orderStatusMeta(order.status);
   const date = order.created_at ? new Date(order.created_at).toLocaleString('ru-RU', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) : '';
   const firstItem = order.items_summary[0];
   const more = order.items_summary.length - 1;
@@ -115,15 +115,3 @@ function OrderRow({ order }: { order: MyOrderSummary }) {
   );
 }
 
-function statusMeta(status: MyOrderSummary['status']) {
-  switch (status) {
-    case 'completed':  return { label: 'Выдан', bg: 'bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-400' };
-    case 'paid':       return { label: 'Оплачен', bg: 'bg-blue-500/15', text: 'text-blue-700 dark:text-blue-400' };
-    case 'fulfilling': return { label: 'Выдаётся', bg: 'bg-sky-500/15', text: 'text-sky-700 dark:text-sky-400' };
-    case 'pending':    return { label: 'Ожидает оплаты', bg: 'bg-amber-500/15', text: 'text-amber-700 dark:text-amber-400' };
-    case 'failed':     return { label: 'Ошибка', bg: 'bg-red-500/15', text: 'text-red-700 dark:text-red-400' };
-    case 'cancelled':  return { label: 'Отменён', bg: 'bg-gray-500/15', text: 'text-gray-600' };
-    case 'refunded':   return { label: 'Возврат', bg: 'bg-purple-500/15', text: 'text-purple-700 dark:text-purple-400' };
-    default:           return { label: status, bg: 'bg-gray-500/15', text: 'text-gray-600' };
-  }
-}
