@@ -35,11 +35,11 @@ const STORAGE_KEY = 'fk-cart';
  */
 export function cartLineKey(item: Pick<CartItem, 'product_id' | 'params'>): string {
   const p = item.params ?? {};
-  const sig = Object.keys(p)
-    .sort()
-    .map((k) => `${k}=${p[k]}`)
-    .join('&');
-  return `${item.product_id}|${sig}`;
+  // JSON.stringify по отсортированным ключам — детерминированно и устойчиво к
+  // спецсимволам в значениях (ручная склейка «k=v&…» могла бы дать коллизию).
+  const sorted: Record<string, string> = {};
+  for (const k of Object.keys(p).sort()) sorted[k] = p[k];
+  return `${item.product_id}|${JSON.stringify(sorted)}`;
 }
 
 /** Проверка формы записи корзины из localStorage — защита от битых данных. */
