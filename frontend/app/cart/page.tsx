@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Minus, Plus, ShieldCheck, Trash2, Zap } from 'lucide-react';
-import { useCart } from '@/lib/cart';
+import { cartLineKey, useCart } from '@/lib/cart';
 
 const CATEGORY_GRADIENTS: Record<string, string> = {
   ai: 'from-brand-500 via-fuchsia-500 to-pink-500',
@@ -73,9 +73,10 @@ export default function CartPage() {
         <section className="space-y-3">
           {items.map((item) => {
             const grad = CATEGORY_GRADIENTS[item.category ?? ''] ?? 'from-slate-500 to-slate-700';
+            const lineKey = cartLineKey(item);
             return (
               <div
-                key={item.product_id}
+                key={lineKey}
                 className="bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 rounded-2xl p-4 flex items-center gap-4"
               >
                 {item.image ? (
@@ -111,7 +112,7 @@ export default function CartPage() {
                     <div className="flex items-center border border-gray-200 dark:border-slate-800 rounded-lg overflow-hidden">
                       <button
                         aria-label="Уменьшить количество"
-                        onClick={() => setQty(item.product_id, item.qty - 1)}
+                        onClick={() => setQty(lineKey, item.qty - 1)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800"
                       >
                         <Minus className="w-3 h-3" />
@@ -119,14 +120,14 @@ export default function CartPage() {
                       <span className="w-10 text-center">{item.qty}</span>
                       <button
                         aria-label="Увеличить количество"
-                        onClick={() => setQty(item.product_id, item.qty + 1)}
+                        onClick={() => setQty(lineKey, item.qty + 1)}
                         className="w-8 h-8 flex items-center justify-center hover:bg-gray-100 dark:hover:bg-slate-800"
                       >
                         <Plus className="w-3 h-3" />
                       </button>
                     </div>
                     <button
-                      onClick={() => remove(item.product_id)}
+                      onClick={() => remove(lineKey)}
                       className="text-xs text-gray-500 hover:text-red-500 flex items-center gap-1"
                     >
                       <Trash2 className="w-3 h-3" /> Удалить
