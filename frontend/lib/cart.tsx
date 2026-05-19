@@ -17,8 +17,8 @@ export type CartItem = {
 type CartState = {
   items: CartItem[];
   add: (item: CartItem) => void;
-  remove: (product_id: number) => void;
-  setQty: (product_id: number, qty: number) => void;
+  remove: (key: string) => void;
+  setQty: (key: string, qty: number) => void;
   clear: () => void;
   count: number;
   total: number;
@@ -27,6 +27,20 @@ type CartState = {
 
 const CartCtx = createContext<CartState | null>(null);
 const STORAGE_KEY = 'fk-cart';
+
+/**
+ * Стабильный ключ строки корзины: товар + конкретный набор params (вариант,
+ * номинал, поля). Разные варианты одного товара = разные строки — иначе
+ * «50 звёзд» и «75 звёзд» схлопывались в одну позицию с ценой первого ×2.
+ */
+export function cartLineKey(item: Pick<CartItem, 'product_id' | 'params'>): string {
+  const p = item.params ?? {};
+  const sig = Object.keys(p)
+    .sort()
+    .map((k) => `${k}=${p[k]}`)
+    .join('&');
+  return `${item.product_id}|${sig}`;
+}
 
 /** Проверка формы записи корзины из localStorage — защита от битых данных. */
 function isValidCartItem(x: unknown): x is CartItem {
@@ -67,24 +81,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const add = (item: CartItem) => {
     setItems((prev) => {
-      const existing = prev.find((p) => p.product_id === item.product_id);
+      // Мерджим только при полном совпадении товара И варианта (cartLineKey).
+      const key = cartLineKey(item);
+      const existing = prev.find((p) => cartLineKey(p) === key);
       if (existing) {
         return prev.map((p) =>
-          p.product_id === item.product_id
-            ? { ...p, qty: p.qty + item.qty, params: item.params ?? p.params }
-            : p,
+          cartLineKey(p) === key ? { ...p, qty: p.qty + item.qty } : p,
         );
       }
       return [...prev, item];
     });
   };
 
-  const remove = (product_id: number) =>
-    setItems((prev) => prev.filter((p) => p.product_id !== product_id));
+  const remove = (key: string) =>
+    setItems((prev) => prev.filter((p) => cartLineKey(p) !== key));
 
-  const setQty = (product_id: number, qty: number) =>
+  const setQty = (key: string, qty: number) =>
     setItems((prev) =>
-      prev.map((p) => (p.product_id === product_id ? { ...p, qty: Math.max(1, qty) } : p)),
+      prev.map((p) => (cartLineKey(p) === key ? { ...p, qty: Math.max(1, qty) } : p)),
     );
 
   const clear = () => setItems([]);

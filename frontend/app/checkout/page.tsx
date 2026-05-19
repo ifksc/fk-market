@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { Bitcoin, CreditCard, QrCode, Wallet } from 'lucide-react';
-import { useCart } from '@/lib/cart';
+import { cartLineKey, useCart } from '@/lib/cart';
 import { checkPromocode, createOrder, getPaymentMethods, type PaymentMethodPublic } from '@/lib/api';
 
 const LAST_EMAIL_KEY = 'fk-last-email';
@@ -289,7 +289,7 @@ export default function CheckoutPage() {
             <div className="font-bold text-lg mb-4">Ваш заказ ({count})</div>
             <div className="space-y-3 text-sm max-h-60 overflow-auto">
               {items.map((item) => (
-                <div key={item.product_id} className="flex gap-3">
+                <div key={cartLineKey(item)} className="flex gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="line-clamp-1">{item.name}</div>
                     <div className="text-xs text-gray-500">{item.qty} шт</div>
