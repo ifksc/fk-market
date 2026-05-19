@@ -132,8 +132,9 @@ Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
 2. **`php artisan serve`** в проде вместо FPM. На каждый деплой нужен полный рестарт контейнера. Перейти на FPM-Docker — тогда `php artisan reload` или просто новые request'ы подхватят код без рестарта.
 3. **`NEXT_PUBLIC_*`** в build-time → при смене client_id любого провайдера нужна пересборка frontend. Не критично, но помнить.
 4. **SMTP 550** на несуществующий email проглатывается `safeSendMail` → юзер видит «отправили», письма нет. Проверять recipient до создания verification (MX-check или async статус).
-5. **Бэкапы БД** — ежедневный mysqldump в S3-совместимое хранилище. Сейчас нет.
-6. **Sentry / мониторинг** — нет. Ошибки только в `storage/logs/laravel.log`.
+5. **Sentry / мониторинг** — нет. Ошибки только в `storage/logs/laravel.log`.
+
+_Закрыто:_ бэкапы БД — ежедневный mysqldump в S3-совместимое хранилище настроены 2026-05-19.
 
 ## SSH и диагностика
 
