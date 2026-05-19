@@ -21,6 +21,27 @@ export type MyOrderSummary = {
   }>;
 };
 
+/**
+ * Метаданные статуса заказа для бейджа в ЛК — единый источник для дашборда
+ * (/account), списка заказов и страницы заказа. Раньше каждая страница
+ * держала свою копию switch — при добавлении статусов (fulfilling, failed)
+ * их забывали обновить везде, и статус показывался по-английски.
+ */
+export function orderStatusMeta(
+  status: MyOrderSummary['status'],
+): { label: string; bg: string; text: string } {
+  switch (status) {
+    case 'completed':  return { label: 'Выдан', bg: 'bg-emerald-500/15', text: 'text-emerald-700 dark:text-emerald-400' };
+    case 'paid':       return { label: 'Оплачен', bg: 'bg-blue-500/15', text: 'text-blue-700 dark:text-blue-400' };
+    case 'fulfilling': return { label: 'Выдаётся', bg: 'bg-sky-500/15', text: 'text-sky-700 dark:text-sky-400' };
+    case 'pending':    return { label: 'Ожидает оплаты', bg: 'bg-amber-500/15', text: 'text-amber-700 dark:text-amber-400' };
+    case 'failed':     return { label: 'Ошибка', bg: 'bg-red-500/15', text: 'text-red-700 dark:text-red-400' };
+    case 'cancelled':  return { label: 'Отменён', bg: 'bg-gray-500/15', text: 'text-gray-600' };
+    case 'refunded':   return { label: 'Возврат', bg: 'bg-purple-500/15', text: 'text-purple-700 dark:text-purple-400' };
+    default:           return { label: status, bg: 'bg-gray-500/15', text: 'text-gray-600' };
+  }
+}
+
 export type MyOrderItem = {
   id: number;
   product: { id: number; name: string; slug: string } | null;
